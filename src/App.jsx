@@ -622,7 +622,15 @@ export default function App() {
                 <span style={{ fontSize: 10, color: "#92400e", fontWeight: 700 }}>{(tasks[ch.id] || []).filter(t => !t.done).length}</span>
               </span>
             )}
-            {ch.unread > 0 && <span style={{ background: "#6366f1", color: "#fff", borderRadius: 10, fontSize: 11, padding: "1px 7px", fontWeight: 700 }}>{ch.unread}</span>}
+            {ch.unread > 0 && (
+              <span style={{
+                background: "#ef4444", color: "#fff",
+                borderRadius: "50%", fontSize: 11, fontWeight: 700,
+                minWidth: 20, height: 20,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                padding: "0 5px", flexShrink: 0,
+              }}>{ch.unread}</span>
+            )}
             {ch.id !== "general" && (
               <button className="ch-del-btn" onClick={e => { e.stopPropagation(); deleteChannel(ch.id); }} style={{
                 display: "none", alignItems: "center", justifyContent: "center",
@@ -838,7 +846,7 @@ export default function App() {
       {SidebarEl}
 
       {/* MAIN */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, height: "100vh", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
 
         {/* HEADER */}
         <div style={{ height: isMobile ? 52 : 54, padding: isMobile ? "0 12px" : "0 20px", borderBottom: "1px solid #e8edf3", display: "flex", alignItems: "center", gap: 10, background: "#fff", flexShrink: 0 }}>
