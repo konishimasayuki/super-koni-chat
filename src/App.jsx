@@ -234,9 +234,15 @@ export default function App() {
     const loadChannels = async () => {
       try {
         const saved = await apiGet("chat:channels");
-        if (saved && saved.length > 0) setChannels(saved);
-        else await apiSet("chat:channels", DEFAULT_CHANNELS);
-      } catch {}
+        if (saved && Array.isArray(saved) && saved.length > 0) {
+          setChannels(saved);
+        } else {
+          setChannels(DEFAULT_CHANNELS);
+          await apiSet("chat:channels", DEFAULT_CHANNELS);
+        }
+      } catch {
+        setChannels(DEFAULT_CHANNELS);
+      }
       setLoading(false);
     };
     loadChannels();
