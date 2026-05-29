@@ -616,6 +616,11 @@ export default function App() {
             }}>
             <span style={{ color: activeChannel === ch.id ? "#6366f1" : "#94a3b8", fontWeight: 700 }}>#</span>
             <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ch.name}</span>
+            {(tasks[ch.id] || []).filter(t => !t.done).length > 0 && (
+              <span style={{ background: "#f59e0b", color: "#fff", borderRadius: 10, fontSize: 10, padding: "1px 6px", fontWeight: 700, marginRight: 2 }}>
+                {(tasks[ch.id] || []).filter(t => !t.done).length}
+              </span>
+            )}
             {ch.unread > 0 && <span style={{ background: "#6366f1", color: "#fff", borderRadius: 10, fontSize: 11, padding: "1px 7px", fontWeight: 700 }}>{ch.unread}</span>}
             {ch.id !== "general" && (
               <button className="ch-del-btn" onClick={e => { e.stopPropagation(); deleteChannel(ch.id); }} style={{
@@ -832,7 +837,7 @@ export default function App() {
       {SidebarEl}
 
       {/* MAIN */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, height: "100vh", overflow: "hidden" }}>
 
         {/* HEADER */}
         <div style={{ height: isMobile ? 52 : 54, padding: isMobile ? "0 12px" : "0 20px", borderBottom: "1px solid #e8edf3", display: "flex", alignItems: "center", gap: 10, background: "#fff", flexShrink: 0 }}>
@@ -863,16 +868,16 @@ export default function App() {
                 ✅ {chTasks.filter(t => !t.done).length}
               </button>
             )}
-            <button onClick={() => setPanel(p => p === "task" ? null : "task")} style={{ background: panel === "task" ? "#eef2ff" : "none", border: "none", borderRadius: 8, cursor: "pointer", fontSize: isMobile ? 20 : 18, padding: "5px 7px", color: panel === "task" ? "#6366f1" : "#64748b" }}>✅</button>
+            <button onClick={() => setPanel(p => p === "task" ? null : "task")} style={{ background: panel === "task" ? "#eef2ff" : "none", border: "none", borderRadius: 8, cursor: "pointer", fontSize: isMobile ? 13 : 13, padding: "5px 9px", color: panel === "task" ? "#6366f1" : "#64748b", display: "flex", alignItems: "center", gap: 4, fontWeight: 600 }}>✅ タスク</button>
             <button onClick={() => setPanel(p => p === "members" ? null : "members")} style={{ background: panel === "members" ? "#eef2ff" : "none", border: "none", borderRadius: 8, cursor: "pointer", fontSize: isMobile ? 20 : 18, padding: "5px 7px", color: panel === "members" ? "#6366f1" : "#64748b" }}>👥</button>
             <button onClick={() => setSearchOpen(true)} style={{ background: "none", border: "none", borderRadius: 8, cursor: "pointer", fontSize: isMobile ? 20 : 18, padding: "5px 7px", color: "#64748b" }}>🔍</button>
           </div>
         </div>
 
-        <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+        <div style={{ flex: 1, display: "flex", minHeight: 0, overflow: "hidden" }}>
           {/* MESSAGES */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-            <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "12px 10px" : "18px 22px" }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
+            <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "12px 10px" : "18px 22px", WebkitOverflowScrolling: "touch" }}>
               {msgs.length === 0 && (
                 <div style={{ textAlign: "center", padding: "80px 20px", color: "#94a3b8" }}>
                   <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
