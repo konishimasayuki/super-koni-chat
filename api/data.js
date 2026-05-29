@@ -12,26 +12,31 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const url = `${UPSTASH_URL}/get/${encodeURIComponent(key)}`;
-      const r = await fetch(url, {
-        headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` }
-      });
+      const r = await fetch(
+        `${UPSTASH_URL}/get/${encodeURIComponent(key)}`,
+        { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } }
+      );
       const data = await r.json();
       const value = data.result ? JSON.parse(data.result) : null;
       return res.status(200).json({ data: value });
     }
+
     if (req.method === 'POST') {
-      const { value } = req.body;
-      const url = `${UPSTASH_URL}/set/${encodeURIComponent(key)}`;
-      await fetch(url, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${UPSTASH_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(JSON.stringify(value))
-      });
-      return res.status(200).json({ ok: true });
+      const body = req.body;
+      const value = body?.value;
+      const r = await fetch(
+        `${UPSTASH_URL}/set/${encodeURIComponent(key)}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${UPSTASH_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(JSON.stringify(value))
+        }
+      );
+      const result = await r.json();
+      return res.status(200).json({ ok: true, result });
     }
   } catch (e) {
     return res.status(500).json({ error: e.message });
