@@ -11,6 +11,7 @@ export default async function handler(req, res) {
   if (!key) return res.status(400).json({ error: 'key required' });
 
   try {
+    // GET: Redisから取得
     if (req.method === 'GET') {
       const r = await fetch(
         `${UPSTASH_URL}/get/${encodeURIComponent(key)}`,
@@ -18,14 +19,20 @@ export default async function handler(req, res) {
       );
       const data = await r.json();
       let value = null;
-      if (data.result) {
-        try { value = JSON.parse(data.result); } catch { value = data.result; }
+      if (data.result !== null && data.result !== undefined) {
+        try {
+          value = JSON.parse(data.result);
+        } catch {
+          value = data.result;
+        }
       }
       return res.status(200).json({ data: value });
     }
 
+    // POST: Redisに保存
     if (req.method === 'POST') {
       const { value } = req.body;
+      // 1回だけJSON.stringifyする
       const r = await fetch(
         `${UPSTASH_URL}/set/${encodeURIComponent(key)}`,
         {
@@ -37,7 +44,10 @@ export default async function handler(req, res) {
           body: JSON.stringify(JSON.stringify(value))
         }
       );
-      await r.json();
+      const result = await r.json();
+      if (result.error) {
+        return res.status(500).json({ error: result.error });
+      }
       return res.status(200).json({ ok: true });
     }
   } catch (e) {
