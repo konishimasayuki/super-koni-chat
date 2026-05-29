@@ -13,9 +13,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="こにChat" />
-    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
 
-    <!-- SEO / OGP -->
+    <!-- SEO -->
     <title>スーパーこにチャット</title>
     <meta name="description" content="チームのビジネスチャットツール" />
 
@@ -26,16 +26,29 @@
 
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      html, body, #root {
-        height: 100%;
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: env(safe-area-inset-bottom);
+
+      /* iOSキーボード対応 */
+      html {
+        height: -webkit-fill-available;
       }
       body {
+        min-height: 100vh;
+        min-height: -webkit-fill-available;
         font-family: 'Noto Sans JP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', sans-serif;
         -webkit-font-smoothing: antialiased;
         overscroll-behavior: none;
       }
+      #root {
+        height: 100vh;
+        height: -webkit-fill-available;
+      }
+
+      /* セーフエリア対応 */
+      .safe-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+
+      /* スクロールバー */
       ::-webkit-scrollbar { width: 4px; }
       ::-webkit-scrollbar-track { background: transparent; }
       ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
