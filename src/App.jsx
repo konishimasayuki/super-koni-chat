@@ -399,10 +399,14 @@ export default function App() {
     loadTasks();
   }, [activeChannel]);
 
-  // スクロール
-  useEffect(() => {
+  // スクロール（自分が送信した時 or チャンネル切り替え時のみ）
+  const scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, activeChannel]);
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [activeChannel]);
 
   // --- チャンネル選択 ---
   const selectChannel = (id) => {
@@ -426,6 +430,7 @@ export default function App() {
     setMessages(prev => ({ ...prev, [activeChannel]: [...(prev[activeChannel] || []), msg] }));
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
 
     // Redisに保存（楽観的更新後のメッセージリストをそのまま保存）
     try {
