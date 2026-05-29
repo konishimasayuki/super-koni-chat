@@ -1,17 +1,6 @@
 const CACHE_NAME = "koni-chat-v1";
 
-const PRECACHE_URLS = [
-  "/",
-  "/manifest.json",
-];
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
-  );
-  self.skipWaiting();
-});
-
+self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -22,18 +11,11 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  if (new URL(event.request.url).pathname.startsWith("/api/")) return;
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).then((res) => {
-        if (res.ok && event.request.method === "GET") {
-          caches.open(CACHE_NAME).then((c) => c.put(event.request, res.clone()));
-        }
-        return res;
-      });
-    })
-  );
+  const url = new URL(event.request.url);
+  // APIはキャッシュしない
+  if (url.pathname.startsWith("/api/")) return;
+  // その他もキャッシュせずそのまま通す
+  return;
 });
 
 self.addEventListener("notificationclick", (event) => {
