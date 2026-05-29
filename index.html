@@ -2,10 +2,56 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0ea5e9" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="こにChat" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
+    <!-- SEO / OGP -->
     <title>スーパーこにチャット</title>
+    <meta name="description" content="チームのビジネスチャットツール" />
+
+    <!-- フォント -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body, #root {
+        height: 100%;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      body {
+        font-family: 'Noto Sans JP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        overscroll-behavior: none;
+      }
+      ::-webkit-scrollbar { width: 4px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('SW registered:', reg.scope))
+            .catch(err => console.log('SW error:', err));
+        });
+      }
+    </script>
   </body>
 </html>
