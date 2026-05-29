@@ -617,8 +617,9 @@ export default function App() {
             <span style={{ color: activeChannel === ch.id ? "#6366f1" : "#94a3b8", fontWeight: 700 }}>#</span>
             <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ch.name}</span>
             {(tasks[ch.id] || []).filter(t => !t.done).length > 0 && (
-              <span style={{ background: "#f59e0b", color: "#fff", borderRadius: 10, fontSize: 10, padding: "1px 6px", fontWeight: 700, marginRight: 2 }}>
-                {(tasks[ch.id] || []).filter(t => !t.done).length}
+              <span style={{ display: "flex", alignItems: "center", gap: 2, background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 10, padding: "1px 6px", marginRight: 2 }}>
+                <span style={{ fontSize: 9, color: "#92400e", fontWeight: 600 }}>残タスク</span>
+                <span style={{ fontSize: 10, color: "#92400e", fontWeight: 700 }}>{(tasks[ch.id] || []).filter(t => !t.done).length}</span>
               </span>
             )}
             {ch.unread > 0 && <span style={{ background: "#6366f1", color: "#fff", borderRadius: 10, fontSize: 11, padding: "1px 7px", fontWeight: 700 }}>{ch.unread}</span>}
@@ -962,7 +963,12 @@ export default function App() {
             </div>
 
             {/* INPUT */}
-            <div style={{ padding: isMobile ? "8px 10px 12px" : "10px 18px 14px", background: "#fff", borderTop: "1px solid #f1f5f9" }}>
+            <div style={{
+              padding: isMobile ? "8px 10px 12px" : "10px 18px 14px",
+              background: "#fff", borderTop: "1px solid #f1f5f9",
+              flexShrink: 0,
+              paddingBottom: isMobile ? "max(12px, env(safe-area-inset-bottom))" : "14px",
+            }}>
               <div style={{ marginBottom: 6, display: "flex", gap: 4 }}>
                 <input ref={fileInputRef} type="file" onChange={handleFile} style={{ display: "none" }} accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar" />
                 <button onClick={() => fileInputRef.current?.click()} disabled={uploading} title="ファイル添付" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: uploading ? "#cbd5e1" : "#94a3b8", padding: "3px 5px", borderRadius: 6 }}
