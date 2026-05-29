@@ -450,6 +450,16 @@ export default function App() {
     try { await apiSet("chat:channels", updated); } catch {}
   };
 
+  const deleteChannel = async (chId) => {
+    if (chId === "general") { showToast("generalは削除できません"); return; }
+    if (!window.confirm("このチャンネルを削除しますか？")) return;
+    const updated = channels.filter(c => c.id !== chId);
+    setChannels(updated);
+    if (activeChannel === chId) selectChannel("general");
+    try { await apiSet("chat:channels", updated); } catch {}
+    showToast("チャンネルを削除しました");
+  };
+
   // --- タスク追加 ---
   const addTask = async () => {
     if (!newTask.text.trim()) return;
@@ -534,19 +544,39 @@ export default function App() {
             onMouseLeave={e => e.currentTarget.style.color = "#94a3b8"}>+</button>
         </div>
         {channels.map(ch => (
-          <div key={ch.id} onClick={() => selectChannel(ch.id)} style={{
-            display: "flex", alignItems: "center", gap: 7,
-            padding: isMobile ? "10px 16px" : "6px 16px", cursor: "pointer",
-            background: activeChannel === ch.id ? "#eef2ff" : "transparent",
-            borderRight: activeChannel === ch.id ? "3px solid #6366f1" : "3px solid transparent",
-            color: activeChannel === ch.id ? "#4f46e5" : "#475569",
-            fontWeight: activeChannel === ch.id ? 700 : 400, fontSize: 13,
-          }}
-            onMouseEnter={e => { if (activeChannel !== ch.id) e.currentTarget.style.background = "#f8fafc"; }}
-            onMouseLeave={e => { if (activeChannel !== ch.id) e.currentTarget.style.background = "transparent"; }}>
+          <div key={ch.id}
+            onClick={() => selectChannel(ch.id)}
+            onContextMenu={e => { e.preventDefault(); deleteChannel(ch.id); }}
+            style={{
+              display: "flex", alignItems: "center", gap: 7,
+              padding: isMobile ? "10px 16px" : "6px 16px", cursor: "pointer",
+              background: activeChannel === ch.id ? "#eef2ff" : "transparent",
+              borderRight: activeChannel === ch.id ? "3px solid #6366f1" : "3px solid transparent",
+              color: activeChannel === ch.id ? "#4f46e5" : "#475569",
+              fontWeight: activeChannel === ch.id ? 700 : 400, fontSize: 13,
+              position: "relative",
+            }}
+            onMouseEnter={e => {
+              if (activeChannel !== ch.id) e.currentTarget.style.background = "#f8fafc";
+              const btn = e.currentTarget.querySelector(".ch-del-btn");
+              if (btn && ch.id !== "general") btn.style.display = "flex";
+            }}
+            onMouseLeave={e => {
+              if (activeChannel !== ch.id) e.currentTarget.style.background = "transparent";
+              const btn = e.currentTarget.querySelector(".ch-del-btn");
+              if (btn) btn.style.display = "none";
+            }}>
             <span style={{ color: activeChannel === ch.id ? "#6366f1" : "#94a3b8", fontWeight: 700 }}>#</span>
             <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ch.name}</span>
             {ch.unread > 0 && <span style={{ background: "#6366f1", color: "#fff", borderRadius: 10, fontSize: 11, padding: "1px 7px", fontWeight: 700 }}>{ch.unread}</span>}
+            {ch.id !== "general" && (
+              <button className="ch-del-btn" onClick={e => { e.stopPropagation(); deleteChannel(ch.id); }} style={{
+                display: "none", alignItems: "center", justifyContent: "center",
+                background: "#fee2e2", border: "none", borderRadius: 6,
+                color: "#ef4444", cursor: "pointer", width: 20, height: 20, fontSize: 12,
+                flexShrink: 0,
+              }}>✕</button>
+            )}
           </div>
         ))}
 
