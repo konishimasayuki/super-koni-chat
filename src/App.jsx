@@ -463,7 +463,28 @@ export default function App() {
   // 初回 & ポーリング
   useEffect(() => {
     loadMessages(activeChannel);
-    const timer = setInterval(() => {
+    const timer = setInterval(async () => {
+      // チャンネル一覧をポーリング（新しいチャンネルを検出）
+      try {
+        const savedChs = await apiGet("chat:channels");
+        if (savedChs && Array.isArray(savedChs)) {
+          setChannels(prev => {
+            // 新しいチャンネルがあれば追加
+            const newChs = savedChs.filter(sc => !prev.find(pc => pc.id === sc.id));
+            if (newChs.length > 0) return savedChs;
+            // 名前変更があれば更新
+            const hasChange = savedChs.some(sc => {
+              const pc = prev.find(pc => pc.id === sc.id);
+              return pc && pc.name !== sc.name;
+            });
+            if (hasChange) return savedChs.map(sc => {
+              const pc = prev.find(pc => pc.id === sc.id);
+              return pc ? { ...sc, unread: pc.unread } : sc;
+            });
+            return prev;
+          });
+        }
+      } catch {}
       // メッセージをポーリング（チャンネル＋全DM）
       channels.forEach(ch => loadMessages(ch.id));
       MEMBERS.filter(m => m.id !== me?.id).forEach(m => loadMessages(`dm-${m.id}`));
