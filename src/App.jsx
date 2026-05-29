@@ -39,6 +39,19 @@ const FILE_COLORS = {
 const AVATAR_COLORS = ["#f97316","#6366f1","#0ea5e9","#10b981","#f59e0b","#ec4899","#8b5cf6","#14b8a6"];
 
 function getUser() {
+  // 古いデータをクリア（adminフラグなしの場合）
+  try {
+    const saved = localStorage.getItem("koni_chat_user");
+    if (saved) {
+      const user = JSON.parse(saved);
+      if (user.admin === undefined) {
+        localStorage.removeItem("koni_chat_user");
+        localStorage.removeItem("koni_chat_expire");
+        return null;
+      }
+    }
+  } catch {}
+
   try {
     const saved = localStorage.getItem("koni_chat_user");
     const expire = localStorage.getItem("koni_chat_expire");
@@ -241,7 +254,7 @@ function LoginScreen({ onLogin }) {
           <label style={{ fontSize: 12, fontWeight: 700, color: "#64748b", display: "block", marginBottom: 6 }}>ID</label>
           <input value={id} onChange={e => { setId(e.target.value); setError(""); }}
             onKeyDown={e => e.key === "Enter" && handleSubmit()}
-            placeholder="例: konishi"
+            placeholder="user"
             style={{ width: "100%", border: "1.5px solid #e8edf3", borderRadius: 10, padding: "11px 14px", fontSize: 15, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
             onFocus={e => e.target.style.borderColor = "#6366f1"}
             onBlur={e => e.target.style.borderColor = "#e8edf3"} />
