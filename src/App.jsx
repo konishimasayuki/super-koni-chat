@@ -38,35 +38,34 @@ const FILE_COLORS = {
 // ============================================================
 const AVATAR_COLORS = ["#f97316","#6366f1","#0ea5e9","#10b981","#f59e0b","#ec4899","#8b5cf6","#14b8a6"];
 
-function getUser() {
-  // 古いデータをクリア（adminフラグなしの場合）
-  try {
-    const saved = localStorage.getItem("koni_chat_user");
-    if (saved) {
-      const user = JSON.parse(saved);
-      if (user.admin === undefined) {
-        localStorage.removeItem("koni_chat_user");
-        localStorage.removeItem("koni_chat_expire");
-        return null;
-      }
-    }
-  } catch {}
+const LOGIN_EXPIRE_DAYS = 7;
+const LOGIN_EXPIRE_MS = LOGIN_EXPIRE_DAYS * 24 * 60 * 60 * 1000;
 
+function getUser() {
   try {
     const saved = localStorage.getItem("koni_chat_user");
     const expire = localStorage.getItem("koni_chat_expire");
-    if (saved && expire && Date.now() < parseInt(expire)) {
-      return JSON.parse(saved);
+    if (!saved || !expire) return null;
+    if (Date.now() > parseInt(expire)) {
+      localStorage.removeItem("koni_chat_user");
+      localStorage.removeItem("koni_chat_expire");
+      return null;
     }
-    localStorage.removeItem("koni_chat_user");
-    localStorage.removeItem("koni_chat_expire");
+    const user = JSON.parse(saved);
+    // adminフラグがない古いデータは無効
+    if (user.admin === undefined) {
+      localStorage.removeItem("koni_chat_user");
+      localStorage.removeItem("koni_chat_expire");
+      return null;
+    }
+    return user;
   } catch {}
   return null;
 }
 
 function saveUser(user) {
   localStorage.setItem("koni_chat_user", JSON.stringify(user));
-  localStorage.setItem("koni_chat_expire", String(Date.now() + LOGIN_EXPIRE_DAYS * 24 * 60 * 60 * 1000));
+  localStorage.setItem("koni_chat_expire", String(Date.now() + LOGIN_EXPIRE_MS));
 }
 
 function logoutUser() {
@@ -84,9 +83,6 @@ const MEMBERS = [
   { id: "user1",    name: "ユーザー1", avatar: "1",  color: "#f59e0b", password: "1234",     admin: false },
   { id: "user2",    name: "ユーザー2", avatar: "2",  color: "#ec4899", password: "1234",     admin: false },
 ];
-
-const LOGIN_EXPIRE_DAYS = 7;
-
 
 // ============================================================
 // hooks
