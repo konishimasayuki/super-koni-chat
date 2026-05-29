@@ -346,7 +346,7 @@ export default function App() {
   const [members, setMembers]         = useState(MEMBERS.map(m => ({ id: m.id, name: m.name, avatar: m.avatar, color: m.color, admin: m.admin })));
   const [input, setInput]             = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [panel, setPanel]             = useState(null);
+  const [panel, setPanel]             = useState(isMobile ? null : "task");
   const [emojiFor, setEmojiFor]       = useState(null);
   const [hoveredMsg, setHoveredMsg]   = useState(null);
   const [showNewCh, setShowNewCh]     = useState(false);
@@ -416,17 +416,18 @@ export default function App() {
   }, []);
 
   // --- メッセージ読み込み（ポーリング） ---
-  const getMsgKey = (chId) => {
+  const getMsgKey = useCallback((chId) => {
     if (chId.startsWith("dm-") && me?.id) {
       const otherId = chId.replace("dm-", "");
       return getDmKey(me.id, otherId);
     }
     return `messages:${chId}`;
-  };
+  }, [me?.id]);
 
   const loadMessages = useCallback(async (chId) => {
+    if (!chId) return;
     try {
-      const key = chId.startsWith("dm-") && me?.id
+      const key = me?.id && chId.startsWith("dm-")
         ? getDmKey(me.id, chId.replace("dm-", ""))
         : `messages:${chId}`;
       const data = await apiGet(key);
@@ -458,12 +459,13 @@ export default function App() {
         return { ...prev, [chId]: msgList };
       });
     } catch {}
-  }, [activeChannel, me?.id, sendNotif]);
+  }, [activeChannel, me?.id, sendNotif, getMsgKey]);
 
   // 初回 & ポーリング
   useEffect(() => {
     loadMessages(activeChannel);
     const timer = setInterval(async () => {
+      if (!me?.id) return; // ログイン前はスキップ
       // チャンネル一覧をポーリング（新しいチャンネルを検出）
       try {
         const savedChs = await apiGet("chat:channels");
@@ -728,7 +730,7 @@ export default function App() {
 
         {/* Channels */}
         <div style={{ padding: "6px 16px 3px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em" }}>チャンネル</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: isMobile ? 11 : 12 }}>チャンネル</span>
           <button onClick={() => setShowNewCh(true)} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: 20, padding: "0 2px" }}
             onMouseEnter={e => e.currentTarget.style.color = "#6366f1"}
             onMouseLeave={e => e.currentTarget.style.color = "#94a3b8"}>+</button>
@@ -786,7 +788,7 @@ export default function App() {
 
         {/* DMs */}
         <div style={{ padding: "10px 16px 3px" }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em" }}>ダイレクト</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: isMobile ? 11 : 12 }}>ダイレクト</span>
         </div>
         {members.filter(m => m.id !== me?.id).map(m => (
           <div key={m.id} onClick={() => selectChannel(`dm-${m.id}`)} style={{
@@ -801,7 +803,7 @@ export default function App() {
               <div style={{ width: 26, height: 26, borderRadius: "50%", background: m.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>{m.avatar}</div>
               <div style={{ position: "absolute", bottom: -1, right: -1, width: 8, height: 8, borderRadius: "50%", background: statusColor(m.status), border: "2px solid #fff" }} />
             </div>
-            <span style={{ fontSize: 13, color: activeChannel === `dm-${m.id}` ? "#4f46e5" : "#475569", fontWeight: activeChannel === `dm-${m.id}` ? 700 : 400, flex: 1 }}>{m.name}</span>
+            <span style={{ fontSize: isMobile ? 13 : 15, color: activeChannel === `dm-${m.id}` ? "#4f46e5" : "#475569", fontWeight: activeChannel === `dm-${m.id}` ? 700 : 400, flex: 1 }}>{m.name}</span>
             {(dmUnread[`dm-${m.id}`] || 0) > 0 && (
               <span style={{
                 background: "#ef4444", color: "#fff",
