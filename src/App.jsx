@@ -314,9 +314,9 @@ export default function App() {
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
 
-    // Redisに保存
+    // Redisに保存（楽観的更新後のメッセージリストをそのまま保存）
     try {
-      const current = await apiGet(`messages:${activeChannel}`) || [];
+      const current = messages[activeChannel] || [];
       await apiSet(`messages:${activeChannel}`, [...current, msg]);
     } catch { showToast("送信に失敗しました"); }
   };
