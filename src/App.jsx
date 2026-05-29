@@ -360,6 +360,11 @@ export default function App() {
   const [uploading, setUploading]     = useState(false);
   const [loading, setLoading]         = useState(true);
   const [editingChName, setEditingChName] = useState(false);
+  const [notes, setNotes] = useState({});
+  const [noteInput, setNoteInput] = useState("");
+  const [noteTitle, setNoteTitle] = useState("");
+  const [showNoteAdd, setShowNoteAdd] = useState(false);
+  const noteFileRef = useRef(null);
   const [dmUnread, setDmUnread] = useState({});  // { "dm-konishi": 2, ... }
   const [editMember, setEditMember]   = useState(null);
   const [editForm, setEditForm]       = useState({ name: "", password: "" });
@@ -497,6 +502,11 @@ export default function App() {
           setTasks(prev => ({ ...prev, [ch.id]: Array.isArray(data) ? data : [] }));
         } catch {}
       });
+      // ノートもポーリング（アクティブチャンネル）
+      try {
+        const noteData = await apiGet(`notes:${activeChannel}`);
+        setNotes(prev => ({ ...prev, [activeChannel]: Array.isArray(noteData) ? noteData : [] }));
+      } catch {}
     }, POLL_INTERVAL);
     return () => clearInterval(timer);
   }, [activeChannel, channels, loadMessages]);
@@ -540,7 +550,8 @@ export default function App() {
     setChannels(p => p.map(c => c.id === id ? { ...c, unread: 0 } : c));
     if (id.startsWith("dm-")) setDmUnread(p => ({ ...p, [id]: 0 }));
     if (isMobile) setSidebarOpen(false);
-    setPanel(null);
+    // PCはパネルを維持、モバイルは閉じる
+    if (isMobile) setPanel(null);
     // 既読をRedisに保存
     if (me?.id) {
       apiSet(`read:${id}:${me.id}`, Date.now()).catch(() => {});
@@ -669,6 +680,50 @@ export default function App() {
     try { await apiSet(`tasks:${activeChannel}`, updated); } catch {}
   };
 
+  const addNote = async (file = null) => {
+    if (!noteInput.trim() && !file) return;
+    const note = {
+      id: Date.now(),
+      uid: me.id, name: me.name, avatar: me.avatar, color: me.color,
+      title: noteTitle.trim(),
+      text: noteInput.trim(),
+      file: file || null,
+      createdAt: new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" }),
+      time: new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }),
+    };
+    const current = notes[activeChannel] || [];
+    const updated = [note, ...current]; // 新しい順
+    setNotes(prev => ({ ...prev, [activeChannel]: updated }));
+    setNoteInput(""); setNoteTitle(""); setShowNoteAdd(false);
+    try { await apiSet(`notes:${activeChannel}`, updated); } catch { showToast("保存に失敗しました"); }
+    showToast("📝 ノートを投稿しました");
+  };
+
+  const deleteNote = async (nid) => {
+    if (!window.confirm("このノートを削除しますか？")) return;
+    const updated = (notes[activeChannel] || []).filter(n => n.id !== nid);
+    setNotes(prev => ({ ...prev, [activeChannel]: updated }));
+    try { await apiSet(`notes:${activeChannel}`, updated); } catch {}
+  };
+
+  const handleNoteFile = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = "";
+    setUploading(true);
+    showToast("📎 アップロード中...");
+    try {
+      const ext = file.name.split(".").pop().toLowerCase();
+      const cat = getFileCategory(ext);
+      const preview = cat === "image" ? URL.createObjectURL(file) : null;
+      let fileInfo;
+      try { fileInfo = await uploadFile(file); }
+      catch { fileInfo = { url: preview, name: file.name, size: `${(file.size/1024/1024).toFixed(1)}MB`, type: ext }; }
+      await addNote({ ...fileInfo, preview });
+    } catch (err) { showToast("❌ " + err.message); }
+    finally { setUploading(false); }
+  };
+
   const deleteTask = async (tid) => {
     const updated = chTasks.filter(t => t.id !== tid);
     setTasks(prev => ({ ...prev, [activeChannel]: updated }));
@@ -761,9 +816,9 @@ export default function App() {
             <span style={{ color: activeChannel === ch.id ? "#6366f1" : "#94a3b8", fontWeight: 700 }}>#</span>
             <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ch.name}</span>
             {(tasks[ch.id] || []).filter(t => !t.done).length > 0 && (
-              <span style={{ display: "flex", alignItems: "center", gap: 2, background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 10, padding: "1px 6px", marginRight: 2 }}>
-                <span style={{ fontSize: 9, color: "#92400e", fontWeight: 600 }}>残タスク</span>
-                <span style={{ fontSize: 10, color: "#92400e", fontWeight: 700 }}>{(tasks[ch.id] || []).filter(t => !t.done).length}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 2, background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 10, padding: isMobile ? "1px 6px" : "2px 8px", marginRight: 2 }}>
+                <span style={{ fontSize: isMobile ? 9 : 11, color: "#92400e", fontWeight: 600 }}>残タスク</span>
+                <span style={{ fontSize: isMobile ? 10 : 12, color: "#92400e", fontWeight: 700 }}>{(tasks[ch.id] || []).filter(t => !t.done).length}</span>
               </span>
             )}
             {ch.unread > 0 && (
@@ -845,6 +900,74 @@ export default function App() {
       </div>
     </div>
   );
+
+  // ---- NOTE PANEL ----
+  const chNotes = notes[activeChannel] || [];
+  const NotePanel = panel === "note" ? (
+    <div style={{
+      width: isMobile ? "100%" : 300, flexShrink: 0,
+      background: "#fff", borderLeft: "1px solid #e8edf3",
+      display: "flex", flexDirection: "column",
+      position: isMobile ? "fixed" : "relative",
+      right: 0, top: 0, height: "100%", zIndex: isMobile ? 200 : 1,
+    }}>
+      <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>📝 ノート</span>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={() => setShowNoteAdd(p => !p)} style={{ background: "linear-gradient(135deg,#6366f1,#0ea5e9)", border: "none", borderRadius: 8, padding: "5px 12px", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>＋投稿</button>
+          <button onClick={() => setPanel(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#94a3b8" }}>✕</button>
+        </div>
+      </div>
+
+      {/* ノート投稿フォーム */}
+      {showNoteAdd && (
+        <div style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9", background: "#f8fafc" }}>
+          <input value={noteTitle} onChange={e => setNoteTitle(e.target.value)}
+            placeholder="タイトル（任意）"
+            style={{ width: "100%", border: "1px solid #e8edf3", borderRadius: 8, padding: "7px 10px", fontSize: 13, marginBottom: 6, boxSizing: "border-box", fontFamily: "inherit", outline: "none" }} />
+          <textarea value={noteInput} onChange={e => setNoteInput(e.target.value)}
+            placeholder="内容を入力..."
+            rows={4}
+            style={{ width: "100%", border: "1px solid #e8edf3", borderRadius: 8, padding: "7px 10px", fontSize: 13, marginBottom: 8, boxSizing: "border-box", fontFamily: "inherit", outline: "none", resize: "none" }} />
+          <div style={{ display: "flex", gap: 6 }}>
+            <input ref={noteFileRef} type="file" onChange={handleNoteFile} style={{ display: "none" }} />
+            <button onClick={() => noteFileRef.current?.click()} style={{ background: "#f1f5f9", border: "1px solid #e8edf3", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 13, color: "#475569" }}>📎</button>
+            <button onClick={() => addNote()} disabled={!noteInput.trim()} style={{ flex: 1, background: noteInput.trim() ? "linear-gradient(135deg,#6366f1,#0ea5e9)" : "#f1f5f9", border: "none", borderRadius: 8, padding: 7, color: noteInput.trim() ? "#fff" : "#94a3b8", fontSize: 13, fontWeight: 700, cursor: noteInput.trim() ? "pointer" : "default" }}>投稿</button>
+            <button onClick={() => { setShowNoteAdd(false); setNoteInput(""); setNoteTitle(""); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "6px 12px", color: "#64748b", fontSize: 13, cursor: "pointer" }}>✕</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px" }}>
+        {chNotes.length === 0 && !showNoteAdd && (
+          <div style={{ textAlign: "center", padding: "40px 0", color: "#94a3b8", fontSize: 13 }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>📝</div>
+            <div>ノートはありません</div>
+            <div style={{ fontSize: 12, marginTop: 4 }}>＋投稿ボタンから追加</div>
+          </div>
+        )}
+        {chNotes.map(note => (
+          <div key={note.id} style={{ background: "#fff", border: "1px solid #e8edf3", borderRadius: 12, padding: "12px 14px", marginBottom: 10, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 24, height: 24, borderRadius: "50%", background: note.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff", flexShrink: 0 }}>{note.avatar}</div>
+                <div>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>{note.name}</span>
+                  <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: 6 }}>{note.createdAt} {note.time}</span>
+                </div>
+              </div>
+              <button onClick={() => deleteNote(note.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#cbd5e1", fontSize: 14 }}
+                onMouseEnter={e => e.currentTarget.style.color = "#ef4444"}
+                onMouseLeave={e => e.currentTarget.style.color = "#cbd5e1"}>✕</button>
+            </div>
+            {note.title && <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{note.title}</div>}
+            {note.text && <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{note.text}</div>}
+            {note.file && <div style={{ marginTop: 8 }}><FileCard file={note.file} /></div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  ) : null;
 
   // ---- TASK PANEL ----
 
@@ -1048,13 +1171,14 @@ export default function App() {
             </div>
           )}
           <div style={{ marginLeft: "auto", display: "flex", gap: isMobile ? 2 : 4, alignItems: "center" }}>
-            {chTasks.filter(t => !t.done).length > 0 && (
+            {/* タスクバッジはPC版のみ */}
+            {!isMobile && chTasks.filter(t => !t.done).length > 0 && (
               <button onClick={() => setPanel(p => p === "task" ? null : "task")} style={{ display: "flex", alignItems: "center", gap: 4, background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 8, padding: "4px 10px", cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#92400e" }}>
                 ✅ {chTasks.filter(t => !t.done).length}
               </button>
             )}
             <button onClick={() => setPanel(p => p === "task" ? null : "task")} style={{ background: panel === "task" ? "#eef2ff" : "none", border: "none", borderRadius: 8, cursor: "pointer", fontSize: isMobile ? 13 : 13, padding: "5px 9px", color: panel === "task" ? "#6366f1" : "#64748b", display: "flex", alignItems: "center", gap: 4, fontWeight: 600 }}>✅ タスク</button>
-            <button onClick={() => setPanel(p => p === "members" ? null : "members")} style={{ background: panel === "members" ? "#eef2ff" : "none", border: "none", borderRadius: 8, cursor: "pointer", fontSize: isMobile ? 20 : 18, padding: "5px 7px", color: panel === "members" ? "#6366f1" : "#64748b" }}>👥</button>
+            <button onClick={() => setPanel(p => p === "note" ? null : "note")} style={{ background: panel === "note" ? "#eef2ff" : "none", border: "none", borderRadius: 8, cursor: "pointer", fontSize: isMobile ? 13 : 13, padding: "5px 9px", color: panel === "note" ? "#6366f1" : "#64748b", display: "flex", alignItems: "center", gap: 4, fontWeight: 600 }}>📝 ノート</button>
             <button onClick={() => setSearchOpen(true)} style={{ background: "none", border: "none", borderRadius: 8, cursor: "pointer", fontSize: isMobile ? 20 : 18, padding: "5px 7px", color: "#64748b" }}>🔍</button>
           </div>
         </div>
@@ -1161,12 +1285,12 @@ export default function App() {
           </div>
 
           {/* SIDE PANEL（PC） */}
-          {!isMobile && (panel === "admin" ? AdminPanel : TaskPanel)}
+          {!isMobile && (panel === "admin" ? AdminPanel : panel === "note" ? NotePanel : TaskPanel)}
         </div>
       </div>
 
       {/* SIDE PANEL（モバイル） */}
-      {isMobile && (panel === "admin" ? AdminPanel : TaskPanel)}
+      {isMobile && (panel === "admin" ? AdminPanel : panel === "note" ? NotePanel : TaskPanel)}
 
       {/* Toast */}
       {toast && (
