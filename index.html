@@ -2,7 +2,7 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
@@ -15,11 +15,9 @@
     <meta name="apple-mobile-web-app-title" content="こにChat" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
 
-    <!-- SEO -->
     <title>スーパーこにチャット</title>
     <meta name="description" content="チームのビジネスチャットツール" />
 
-    <!-- フォント -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -27,28 +25,28 @@
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
 
-      /* iOSキーボード対応 */
       html {
+        height: 100%;
         height: -webkit-fill-available;
       }
       body {
-        min-height: 100vh;
-        min-height: -webkit-fill-available;
-        font-family: 'Noto Sans JP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', sans-serif;
+        height: 100%;
+        height: -webkit-fill-available;
+        font-family: 'Noto Sans JP', 'Hiragino Sans', sans-serif;
         -webkit-font-smoothing: antialiased;
         overscroll-behavior: none;
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
       }
       #root {
-        height: 100vh;
+        height: 100%;
         height: -webkit-fill-available;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
       }
 
-      /* セーフエリア対応 */
-      .safe-bottom {
-        padding-bottom: env(safe-area-inset-bottom);
-      }
-
-      /* スクロールバー */
       ::-webkit-scrollbar { width: 4px; }
       ::-webkit-scrollbar-track { background: transparent; }
       ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
