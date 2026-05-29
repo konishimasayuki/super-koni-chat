@@ -17,13 +17,15 @@ export default async function handler(req, res) {
         { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } }
       );
       const data = await r.json();
-      const value = data.result ? JSON.parse(data.result) : null;
+      let value = null;
+      if (data.result) {
+        try { value = JSON.parse(data.result); } catch { value = data.result; }
+      }
       return res.status(200).json({ data: value });
     }
 
     if (req.method === 'POST') {
-      const body = req.body;
-      const value = body?.value;
+      const { value } = req.body;
       const r = await fetch(
         `${UPSTASH_URL}/set/${encodeURIComponent(key)}`,
         {
@@ -35,8 +37,8 @@ export default async function handler(req, res) {
           body: JSON.stringify(JSON.stringify(value))
         }
       );
-      const result = await r.json();
-      return res.status(200).json({ ok: true, result });
+      await r.json();
+      return res.status(200).json({ ok: true });
     }
   } catch (e) {
     return res.status(500).json({ error: e.message });
