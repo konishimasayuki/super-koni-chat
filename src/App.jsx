@@ -34,9 +34,21 @@ const FILE_COLORS = {
 };
 
 // ============================================================
-// ログインユーザー（後でメンバー管理機能で拡張予定）
+// アバターカラー
 // ============================================================
-const ME = { id: "me", name: "あなた", avatar: "あ", color: "#f97316" };
+const AVATAR_COLORS = ["#f97316","#6366f1","#0ea5e9","#10b981","#f59e0b","#ec4899","#8b5cf6","#14b8a6"];
+
+function getUser() {
+  try {
+    const saved = localStorage.getItem("koni_chat_user");
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return null;
+}
+
+function saveUser(user) {
+  localStorage.setItem("koni_chat_user", JSON.stringify(user));
+}
 
 // ============================================================
 // hooks
@@ -174,7 +186,34 @@ function FileCard({ file }) {
 // ============================================================
 // メインアプリ
 // ============================================================
+// ============================================================
+// 名前入力画面
+// ============================================================
+function LoginScreen({ onLogin }) {
+  const [name, setName] = useState("");
+  const handleSubmit = () => {
+    if (!name.trim()) return;
+    const color = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
+    const user = { id: `user_${Date.now()}`, name: name.trim(), avatar: name.trim().charAt(0), color };
+    saveUser(user);
+    onLogin(user);
+  };
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#f8fafc", fontFamily: "'Noto Sans JP',sans-serif" }}>
+      <div style={{ background: "#fff", borderRadius: 20, padding: "40px 36px", width: "100%", maxWidth: 380, boxShadow: "0 8px 40px rgba(0,0,0,0.1)", textAlign: "center" }}>
+        <img src="/logo.png" alt="スーパーこにチャット" style={{ height: 64, objectFit: "contain", marginBottom: 20 }} onError={e => e.target.style.display = "none"} />
+        <h1 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", marginBottom: 6 }}>スーパーこにチャット</h1>
+        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 28 }}>名前を入力してはじめましょう</p>
+        <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} placeholder="あなたの名前" autoFocus style={{ width: "100%", border: "1.5px solid #e8edf3", borderRadius: 12, padding: "12px 16px", fontSize: 15, fontFamily: "inherit", outline: "none", boxSizing: "border-box", marginBottom: 14, textAlign: "center" }} />
+        <button onClick={handleSubmit} disabled={!name.trim()} style={{ width: "100%", background: name.trim() ? "linear-gradient(135deg,#6366f1,#0ea5e9)" : "#f1f5f9", border: "none", borderRadius: 12, padding: "12px", color: name.trim() ? "#fff" : "#94a3b8", fontSize: 15, fontWeight: 700, cursor: name.trim() ? "pointer" : "default" }}>はじめる →</button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
+  const savedUser = getUser();
+  const [me, setMe] = useState(savedUser);
   const isMobile = useIsMobile();
 
   // --- State ---
@@ -182,7 +221,7 @@ export default function App() {
   const [activeChannel, setActiveChannel] = useState("general");
   const [messages, setMessages]       = useState({});
   const [tasks, setTasks]             = useState({});
-  const [members, setMembers]         = useState([ME]);
+  const [members, setMembers]         = useState(savedUser ? [savedUser] : []);
   const [input, setInput]             = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [panel, setPanel]             = useState(null);
@@ -304,7 +343,7 @@ export default function App() {
     if (!input.trim() && !extraProps.file && !extraProps.zoom) return;
     const msg = {
       id: Date.now(),
-      uid: ME.id, name: ME.name, avatar: ME.avatar, color: ME.color,
+      uid: me.id, name: me.name, avatar: me.avatar, color: me.color,
       time: new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }),
       text: input.trim(), reactions: [], file: null, zoom: null,
       ...extraProps,
@@ -410,6 +449,8 @@ export default function App() {
   // ============================================================
   // RENDER
   // ============================================================
+  if (!me) return <LoginScreen onLogin={(user) => { setMe(user); setMembers([user]); }} />;
+
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#f8fafc", flexDirection: "column", gap: 16 }}>
       <img src="/logo.png" alt="ロゴ" style={{ height: 48, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
@@ -503,11 +544,11 @@ export default function App() {
       {/* User footer */}
       <div style={{ padding: "10px 14px", borderTop: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 9 }}>
         <div style={{ position: "relative" }}>
-          <div style={{ width: 32, height: 32, borderRadius: "50%", background: ME.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff" }}>{ME.avatar}</div>
+          <div style={{ width: 32, height: 32, borderRadius: "50%", background: me.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff" }}>{me.avatar}</div>
           <div style={{ position: "absolute", bottom: 0, right: 0, width: 9, height: 9, borderRadius: "50%", background: "#22c55e", border: "2px solid #fff" }} />
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{ME.name}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{me.name}</div>
           <div style={{ fontSize: 11, color: "#22c55e" }}>● オンライン</div>
         </div>
         <button onClick={requestNotif} title="通知設定" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: notifGranted ? "#6366f1" : "#94a3b8", padding: 4 }}>🔔</button>
@@ -654,7 +695,7 @@ export default function App() {
                 </div>
               )}
               {msgs.map((msg, idx) => {
-                const isSelf = msg.uid === "me";
+                const isSelf = msg.uid === me.id;
                 const prev = msgs[idx - 1];
                 const showHeader = !prev || prev.uid !== msg.uid;
                 return (
@@ -669,7 +710,7 @@ export default function App() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       {showHeader && (
                         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 2 }}>
-                          <span style={{ fontWeight: 800, fontSize: 13, color: msg.color || "#6366f1" }}>{isSelf ? "あなた" : msg.name}</span>
+                          <span style={{ fontWeight: 800, fontSize: 13, color: msg.color || "#6366f1" }}>{isSelf ? me.name : msg.name}</span>
                           <span style={{ fontSize: 11, color: "#94a3b8" }}>{msg.time}</span>
                         </div>
                       )}
