@@ -51,6 +51,18 @@ function saveUser(user) {
 }
 
 // ============================================================
+// メンバー一覧（固定）
+// ============================================================
+const MEMBERS = [
+  { id: "konishi",  name: "小西",    avatar: "小", color: "#6366f1" },
+  { id: "masato",   name: "まさと",  avatar: "ま", color: "#0ea5e9" },
+  { id: "nakamura", name: "中村",    avatar: "中", color: "#10b981" },
+  { id: "user1",    name: "ユーザー1", avatar: "1", color: "#f59e0b" },
+  { id: "user2",    name: "ユーザー2", avatar: "2", color: "#ec4899" },
+];
+
+
+// ============================================================
 // hooks
 // ============================================================
 function useIsMobile() {
@@ -190,22 +202,41 @@ function FileCard({ file }) {
 // 名前入力画面
 // ============================================================
 function LoginScreen({ onLogin }) {
-  const [name, setName] = useState("");
+  const [selectedId, setSelectedId] = useState("");
   const handleSubmit = () => {
-    if (!name.trim()) return;
-    const color = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
-    const user = { id: `user_${Date.now()}`, name: name.trim(), avatar: name.trim().charAt(0), color };
-    saveUser(user);
-    onLogin(user);
+    const member = MEMBERS.find(m => m.id === selectedId);
+    if (!member) return;
+    saveUser(member);
+    onLogin(member);
   };
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#f8fafc", fontFamily: "'Noto Sans JP',sans-serif" }}>
-      <div style={{ background: "#fff", borderRadius: 20, padding: "40px 36px", width: "100%", maxWidth: 380, boxShadow: "0 8px 40px rgba(0,0,0,0.1)", textAlign: "center" }}>
-        <img src="/logo.png" alt="スーパーこにチャット" style={{ height: 64, objectFit: "contain", marginBottom: 20 }} onError={e => e.target.style.display = "none"} />
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#f8fafc", fontFamily: "'Noto Sans JP',sans-serif", padding: 20 }}>
+      <div style={{ background: "#fff", borderRadius: 20, padding: "40px 32px", width: "100%", maxWidth: 400, boxShadow: "0 8px 40px rgba(0,0,0,0.1)", textAlign: "center" }}>
+        <img src="/logo.png" alt="スーパーこにチャット" style={{ height: 64, objectFit: "contain", marginBottom: 16 }} onError={e => e.target.style.display = "none"} />
         <h1 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", marginBottom: 6 }}>スーパーこにチャット</h1>
-        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 28 }}>名前を入力してはじめましょう</p>
-        <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} placeholder="あなたの名前" autoFocus style={{ width: "100%", border: "1.5px solid #e8edf3", borderRadius: 12, padding: "12px 16px", fontSize: 15, fontFamily: "inherit", outline: "none", boxSizing: "border-box", marginBottom: 14, textAlign: "center" }} />
-        <button onClick={handleSubmit} disabled={!name.trim()} style={{ width: "100%", background: name.trim() ? "linear-gradient(135deg,#6366f1,#0ea5e9)" : "#f1f5f9", border: "none", borderRadius: 12, padding: "12px", color: name.trim() ? "#fff" : "#94a3b8", fontSize: 15, fontWeight: 700, cursor: name.trim() ? "pointer" : "default" }}>はじめる →</button>
+        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>あなたは誰ですか？</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
+          {MEMBERS.map(m => (
+            <button key={m.id} onClick={() => setSelectedId(m.id)} style={{
+              display: "flex", alignItems: "center", gap: 14,
+              padding: "12px 16px", borderRadius: 12, cursor: "pointer",
+              border: selectedId === m.id ? `2px solid ${m.color}` : "2px solid #e8edf3",
+              background: selectedId === m.id ? `${m.color}11` : "#f8fafc",
+              transition: "all 0.15s",
+            }}>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: m.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#fff", flexShrink: 0 }}>{m.avatar}</div>
+              <span style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>{m.name}</span>
+              {selectedId === m.id && <span style={{ marginLeft: "auto", color: m.color, fontSize: 18 }}>✓</span>}
+            </button>
+          ))}
+        </div>
+        <button onClick={handleSubmit} disabled={!selectedId} style={{
+          width: "100%", background: selectedId ? "linear-gradient(135deg,#6366f1,#0ea5e9)" : "#f1f5f9",
+          border: "none", borderRadius: 12, padding: "13px",
+          color: selectedId ? "#fff" : "#94a3b8",
+          fontSize: 15, fontWeight: 700, cursor: selectedId ? "pointer" : "default",
+          boxShadow: selectedId ? "0 4px 14px rgba(99,102,241,0.4)" : "none",
+        }}>はじめる →</button>
       </div>
     </div>
   );
