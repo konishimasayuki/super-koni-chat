@@ -383,12 +383,20 @@ export default function App() {
   useEffect(() => {
     loadMessages(activeChannel);
     const timer = setInterval(() => {
+      // メッセージをポーリング
       channels.forEach(ch => loadMessages(ch.id));
+      // タスクもポーリング（全チャンネル）
+      channels.forEach(async ch => {
+        try {
+          const data = await apiGet(`tasks:${ch.id}`);
+          setTasks(prev => ({ ...prev, [ch.id]: Array.isArray(data) ? data : [] }));
+        } catch {}
+      });
     }, POLL_INTERVAL);
     return () => clearInterval(timer);
   }, [activeChannel, channels, loadMessages]);
 
-  // タスク読み込み
+  // タスク読み込み（アクティブチャンネル切り替え時）
   useEffect(() => {
     const loadTasks = async () => {
       try {
@@ -398,6 +406,19 @@ export default function App() {
     };
     loadTasks();
   }, [activeChannel]);
+
+  // 全チャンネルのタスクを初回ロード
+  useEffect(() => {
+    const loadAllTasks = async () => {
+      for (const ch of channels) {
+        try {
+          const data = await apiGet(`tasks:${ch.id}`);
+          setTasks(prev => ({ ...prev, [ch.id]: Array.isArray(data) ? data : [] }));
+        } catch {}
+      }
+    };
+    loadAllTasks();
+  }, [channels.length]);
 
   // スクロール（自分が送信した時 or チャンネル切り替え時のみ）
   const scrollToBottom = () => {
@@ -936,34 +957,9 @@ export default function App() {
                           ))}
                         </div>
                       )}
-                      {isMobile && (
-                        <div style={{ marginTop: 3 }}>
-                          <button onClick={() => setEmojiFor(emojiFor === msg.id ? null : msg.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: "#cbd5e1" }}>😊</button>
-                          {emojiFor === msg.id && (
-                            <div style={{ position: "absolute", left: 44, background: "#fff", border: "1px solid #e8edf3", borderRadius: 14, padding: 8, display: "flex", flexWrap: "wrap", gap: 2, width: 200, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 20 }}>
-                              {EMOJIS.map(e => <button key={e} onClick={() => react(msg.id, e)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 24, padding: 4 }}>{e}</button>)}
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      {/* リアクションボタン非表示 */}
                     </div>
-                    {!isMobile && hoveredMsg === msg.id && (
-                      <div style={{ position: "absolute", top: -16, right: 12, display: "flex", gap: 2, background: "#fff", border: "1px solid #e8edf3", borderRadius: 10, padding: "3px 6px", boxShadow: "0 4px 16px rgba(0,0,0,0.1)", zIndex: 10 }}>
-                        {["😊","👍","❤️"].map(e => (
-                          <button key={e} onClick={() => react(msg.id, e)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, padding: "2px 5px", borderRadius: 6, transition: "transform 0.1s" }}
-                            onMouseEnter={el => el.currentTarget.style.transform = "scale(1.3)"}
-                            onMouseLeave={el => el.currentTarget.style.transform = "scale(1)"}>{e}</button>
-                        ))}
-                        <button onClick={() => setEmojiFor(emojiFor === msg.id ? null : msg.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#64748b", padding: "2px 5px", fontWeight: 700 }}>＋</button>
-                        {emojiFor === msg.id && (
-                          <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 4, background: "#fff", border: "1px solid #e8edf3", borderRadius: 12, padding: 8, display: "flex", flexWrap: "wrap", gap: 2, width: 160, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 20 }}>
-                            {EMOJIS.map(e => <button key={e} onClick={() => react(msg.id, e)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, padding: 4, transition: "transform 0.1s" }}
-                              onMouseEnter={el => el.currentTarget.style.transform = "scale(1.3)"}
-                              onMouseLeave={el => el.currentTarget.style.transform = "scale(1)"}>{e}</button>)}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {/* PCリアクションボタン非表示 */}
                   </div>
                 );
               })}
