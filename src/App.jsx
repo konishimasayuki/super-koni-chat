@@ -7,10 +7,10 @@ const APP_VERSION = "v1.0.0";
 const POLL_INTERVAL = 3000; // 3秒ポーリング
 
 const DEFAULT_CHANNELS = [
-  { id: "general",  name: "general",   desc: "全体連絡" },
   { id: "sales",    name: "営業チーム", desc: "営業関連" },
   { id: "dev",      name: "開発",       desc: "開発チーム" },
   { id: "random",   name: "雑談",       desc: "なんでもOK" },
+  { id: "general",  name: "general",   desc: "全体連絡" },
 ];
 
 const EMOJIS = ["👍","❤️","😂","🎉","🚀","👏","✅","🔥","💪","😊"];
@@ -115,6 +115,14 @@ async function apiSet(key, value) {
   });
   if (!res.ok) throw new Error("SET failed");
   return true;
+}
+
+// ============================================================
+// DM共通キー生成（AとBのIDを並べ替えて共通キーにする）
+// ============================================================
+function getDmKey(id1, id2) {
+  const sorted = [id1, id2].sort();
+  return `dm:${sorted[0]}:${sorted[1]}`;
 }
 
 // ============================================================
@@ -225,7 +233,7 @@ function FileCard({ file }) {
 // ============================================================
 // 既読表示コンポーネント
 // ============================================================
-function ReadStatus({ channelId, msgTime, myId, members }) {
+function ReadStatus({ channelId, msgId, myId, members, sentAt }) {
   const [readers, setReaders] = useState([]);
 
   useEffect(() => {
@@ -235,7 +243,8 @@ function ReadStatus({ channelId, msgTime, myId, members }) {
         if (m.id === myId) continue;
         try {
           const readAt = await apiGet(`read:${channelId}:${m.id}`);
-          if (readAt) readMembers.push(m);
+          // sentAt以降にそのチャンネルを開いた人だけ既読
+          if (readAt && readAt > sentAt) readMembers.push(m);
         } catch {}
       }
       setReaders(readMembers);
@@ -243,14 +252,14 @@ function ReadStatus({ channelId, msgTime, myId, members }) {
     check();
     const timer = setInterval(check, 3000);
     return () => clearInterval(timer);
-  }, [channelId, myId]);
+  }, [channelId, myId, sentAt]);
 
   if (readers.length === 0) return (
-    <div style={{ fontSize: 11, color: "#cbd5e1", textAlign: "right", marginTop: 2 }}>未読</div>
+    <div style={{ fontSize: 11, color: "#cbd5e1", marginTop: 2 }}>未読</div>
   );
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 2, justifyContent: "flex-start" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 2 }}>
       <span style={{ fontSize: 11, color: "#0ea5e9", fontWeight: 600 }}>既読</span>
       {readers.map(m => (
         <div key={m.id} style={{ width: 16, height: 16, borderRadius: "50%", background: m.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 700, color: "#fff" }}>{m.avatar}</div>
@@ -407,15 +416,30 @@ export default function App() {
   }, []);
 
   // --- メッセージ読み込み（ポーリング） ---
+  const getMsgKey = (chId) => {
+    if (chId.startsWith("dm-") && me?.id) {
+      const otherId = chId.replace("dm-", "");
+      return getDmKey(me.id, otherId);
+    }
+    return `messages:${chId}`;
+  };
+
   const loadMessages = useCallback(async (chId) => {
     try {
-      const data = await apiGet(`messages:${chId}`);
+      const key = chId.startsWith("dm-") && me?.id
+        ? getDmKey(me.id, chId.replace("dm-", ""))
+        : `messages:${chId}`;
+      const data = await apiGet(key);
       const msgList = Array.isArray(data) ? data : [];
       setMessages(prev => {
         const lastId = lastMsgIds.current[chId];
+        const isFirstLoad = !lastId;
+
+        // 新着メッセージを検出
         const newMsgs = lastId ? msgList.filter(m => m.id > lastId) : [];
-        if (newMsgs.length > 0 && chId !== activeChannel) {
-          // 自分以外からのメッセージのみ未読カウント
+
+        // 初回ロード以外で新着があり、かつ今見ていないチャンネルの場合に未読カウント
+        if (!isFirstLoad && newMsgs.length > 0 && chId !== activeChannel) {
           const othersNewMsgs = newMsgs.filter(m => m.uid !== me?.id);
           if (othersNewMsgs.length > 0) {
             if (chId.startsWith("dm-")) {
@@ -426,7 +450,11 @@ export default function App() {
             othersNewMsgs.forEach(m => sendNotif("スーパーこにチャット", `${m.name}: ${m.text || "ファイルが届きました"}`));
           }
         }
-        if (msgList.length > 0) lastMsgIds.current[chId] = msgList[msgList.length - 1].id;
+
+        // 最後のメッセージIDを記録
+        if (msgList.length > 0) {
+          lastMsgIds.current[chId] = msgList[msgList.length - 1].id;
+        }
         return { ...prev, [chId]: msgList };
       });
     } catch {}
@@ -511,13 +539,15 @@ export default function App() {
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
-    // 既読を記録
-    if (me?.id) apiSet(`read:${activeChannel}:${me.id}`, Date.now()).catch(() => {});
+    // 送信時は既読不要（開いてるので当然読んでいる）
 
     // Redisに保存（楽観的更新後のメッセージリストをそのまま保存）
     try {
       const current = messages[activeChannel] || [];
-      await apiSet(`messages:${activeChannel}`, [...current, msg]);
+      const saveKey = activeChannel.startsWith("dm-") && me?.id
+        ? getDmKey(me.id, activeChannel.replace("dm-", ""))
+        : `messages:${activeChannel}`;
+      await apiSet(saveKey, [...current, msg]);
     } catch { showToast("送信に失敗しました"); }
   };
 
@@ -1062,7 +1092,7 @@ export default function App() {
                       {/* リアクションボタン非表示 */}
                       {/* 自分が送ったメッセージに既読表示 */}
                       {isSelf && idx === msgs.length - 1 && (
-                        <ReadStatus channelId={activeChannel} msgTime={msg.time} myId={me?.id} members={members} />
+                        <ReadStatus channelId={activeChannel} msgId={msg.id} myId={me?.id} members={members} sentAt={msg.id} />
                       )}
                     </div>
                     {/* PCリアクションボタン非表示 */}
