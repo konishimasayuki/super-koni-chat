@@ -293,7 +293,7 @@ function LoginScreen({ onLogin }) {
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#f8fafc", fontFamily: "'Noto Sans JP',sans-serif", padding: 20 }}>
       <div style={{ background: "#fff", borderRadius: 20, padding: "40px 32px", width: "100%", maxWidth: 380, boxShadow: "0 8px 40px rgba(0,0,0,0.1)" }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <img src="/logo.png" alt="スーパーこにチャット" style={{ height: 64, objectFit: "contain", marginBottom: 16 }} onError={e => e.target.style.display = "none"} />
+          <img src="/logo.png" alt="スーパーこにチャット" style={{ height: 77, objectFit: "contain", marginBottom: 16 }} onError={e => e.target.style.display = "none"} />
           <h1 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", marginBottom: 4 }}>スーパーこにチャット</h1>
           <p style={{ fontSize: 13, color: "#94a3b8" }}>ログイン</p>
         </div>
@@ -686,7 +686,7 @@ export default function App() {
 
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#f8fafc", flexDirection: "column", gap: 16 }}>
-      <img src="/logo.png" alt="ロゴ" style={{ height: 48, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
+      <img src="/logo.png" alt="ロゴ" style={{ height: 58, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
       <div style={{ fontSize: 14, color: "#94a3b8" }}>読み込み中...</div>
     </div>
   );
@@ -705,7 +705,7 @@ export default function App() {
     }}>
       {/* Logo */}
       <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 10 }}>
-        <img src="/logo.png" alt="スーパーこにチャット" style={{ height: 36, objectFit: "contain" }}
+        <img src="/logo.png" alt="スーパーこにチャット" style={{ height: 43, objectFit: "contain" }}
           onError={e => { e.target.style.display = "none"; }} />
         {isMobile && (
           <button onClick={() => setSidebarOpen(false)} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", fontSize: 22, color: "#94a3b8", padding: 4 }}>✕</button>
