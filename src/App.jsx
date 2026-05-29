@@ -292,7 +292,7 @@ export default function App() {
   const [activeChannel, setActiveChannel] = useState("general");
   const [messages, setMessages]       = useState({});
   const [tasks, setTasks]             = useState({});
-  const [members, setMembers]         = useState(savedUser ? [savedUser] : []);
+  const [members, setMembers]         = useState(MEMBERS.map(m => ({ id: m.id, name: m.name, avatar: m.avatar, color: m.color, admin: m.admin })));
   const [input, setInput]             = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [panel, setPanel]             = useState(null);
@@ -308,6 +308,7 @@ export default function App() {
   const [toast, setToast]             = useState(null);
   const [uploading, setUploading]     = useState(false);
   const [loading, setLoading]         = useState(true);
+  const [editingChName, setEditingChName] = useState(false);
   const [editMember, setEditMember]   = useState(null);
   const [editForm, setEditForm]       = useState({ name: "", password: "" });
   const [localMembers, setLocalMembers] = useState(MEMBERS.map(m => ({ ...m })));
@@ -508,6 +509,15 @@ export default function App() {
   };
 
   // --- チャンネル追加 ---
+  const renameChannel = async (newName) => {
+    if (!newName.trim() || newName.trim() === chInfo?.name) { setEditingChName(false); return; }
+    const updated = channels.map(c => c.id === activeChannel ? { ...c, name: newName.trim() } : c);
+    setChannels(updated);
+    setEditingChName(false);
+    try { await apiSet("chat:channels", updated); } catch {}
+    showToast("チャンネル名を変更しました");
+  };
+
   const addChannel = async () => {
     if (!newChName.trim()) return;
     const newCh = { id: `ch_${Date.now()}`, name: newChName.trim(), desc: "", unread: 0 };
@@ -559,7 +569,7 @@ export default function App() {
   // ============================================================
   // RENDER
   // ============================================================
-  if (!me) return <LoginScreen onLogin={(user) => { setMe(user); setMembers([user]); }} />;
+  if (!me) return <LoginScreen onLogin={(user) => { setMe(user); }} />;
 
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#f8fafc", flexDirection: "column", gap: 16 }}>
@@ -667,7 +677,7 @@ export default function App() {
         <div style={{ padding: "10px 16px 3px" }}>
           <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em" }}>ダイレクト</span>
         </div>
-        {members.filter(m => m.id !== "me").map(m => (
+        {members.filter(m => m.id !== me?.id).map(m => (
           <div key={m.id} onClick={() => selectChannel(`dm-${m.id}`)} style={{
             display: "flex", alignItems: "center", gap: 9,
             padding: isMobile ? "9px 16px" : "5px 16px", cursor: "pointer",
@@ -886,9 +896,32 @@ export default function App() {
             </div>
           ) : (
             <div>
-              <div style={{ fontWeight: 800, fontSize: isMobile ? 13 : 14, color: "#0f172a" }}>
-                <span style={{ color: "#6366f1", marginRight: 4 }}>#</span>{chInfo?.name}
-              </div>
+              {editingChName ? (
+                <input
+                  autoFocus
+                  defaultValue={chInfo?.name}
+                  onBlur={e => renameChannel(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") renameChannel(e.target.value);
+                    if (e.key === "Escape") setEditingChName(false);
+                  }}
+                  style={{
+                    fontSize: isMobile ? 13 : 14, fontWeight: 800,
+                    border: "none", borderBottom: "2px solid #6366f1",
+                    outline: "none", background: "transparent",
+                    color: "#0f172a", fontFamily: "inherit", width: 140,
+                  }}
+                />
+              ) : (
+                <div
+                  onClick={() => setEditingChName(true)}
+                  style={{ fontWeight: 800, fontSize: isMobile ? 13 : 14, color: "#0f172a", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+                  title="タップして名前を変更">
+                  <span style={{ color: "#6366f1" }}>#</span>
+                  <span>{chInfo?.name}</span>
+                  <span style={{ fontSize: 11, color: "#cbd5e1" }}>✏️</span>
+                </div>
+              )}
               {!isMobile && chInfo?.desc && <div style={{ fontSize: 11, color: "#94a3b8" }}>{chInfo.desc}</div>}
             </div>
           )}
