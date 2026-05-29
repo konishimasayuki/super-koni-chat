@@ -118,6 +118,11 @@ async function apiSet(key, value) {
 }
 
 // ============================================================
+// 既読管理
+// ============================================================
+// キー: read:{channelId}:{userId} → 最後に読んだメッセージID
+
+// ============================================================
 // ファイルアップロード（Vercel Blob）
 // ============================================================
 async function uploadFile(file) {
@@ -218,6 +223,43 @@ function FileCard({ file }) {
 }
 
 // ============================================================
+// 既読表示コンポーネント
+// ============================================================
+function ReadStatus({ channelId, msgTime, myId, members }) {
+  const [readers, setReaders] = useState([]);
+
+  useEffect(() => {
+    const check = async () => {
+      const readMembers = [];
+      for (const m of members) {
+        if (m.id === myId) continue;
+        try {
+          const readAt = await apiGet(`read:${channelId}:${m.id}`);
+          if (readAt) readMembers.push(m);
+        } catch {}
+      }
+      setReaders(readMembers);
+    };
+    check();
+    const timer = setInterval(check, 3000);
+    return () => clearInterval(timer);
+  }, [channelId, myId]);
+
+  if (readers.length === 0) return (
+    <div style={{ fontSize: 11, color: "#cbd5e1", textAlign: "right", marginTop: 2 }}>未読</div>
+  );
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 2, justifyContent: "flex-start" }}>
+      <span style={{ fontSize: 11, color: "#0ea5e9", fontWeight: 600 }}>既読</span>
+      {readers.map(m => (
+        <div key={m.id} style={{ width: 16, height: 16, borderRadius: "50%", background: m.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 700, color: "#fff" }}>{m.avatar}</div>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================
 // メインアプリ
 // ============================================================
 // ============================================================
@@ -309,6 +351,7 @@ export default function App() {
   const [uploading, setUploading]     = useState(false);
   const [loading, setLoading]         = useState(true);
   const [editingChName, setEditingChName] = useState(false);
+  const [dmUnread, setDmUnread] = useState({});  // { "dm-konishi": 2, ... }
   const [editMember, setEditMember]   = useState(null);
   const [editForm, setEditForm]       = useState({ name: "", password: "" });
   const [localMembers, setLocalMembers] = useState(MEMBERS.map(m => ({ ...m })));
@@ -324,7 +367,8 @@ export default function App() {
   const chInfo = channels.find(c => c.id === activeChannel);
   const msgs = messages[activeChannel] || [];
   const chTasks = tasks[activeChannel] || [];
-  const totalUnread = channels.reduce((s, c) => s + (c.unread || 0), 0);
+  const totalUnread = channels.reduce((s, c) => s + (c.unread || 0), 0)
+    + Object.values(dmUnread).reduce((s, v) => s + v, 0);
 
   // --- Toast ---
   const showToast = useCallback((msg) => {
@@ -371,21 +415,30 @@ export default function App() {
         const lastId = lastMsgIds.current[chId];
         const newMsgs = lastId ? msgList.filter(m => m.id > lastId) : [];
         if (newMsgs.length > 0 && chId !== activeChannel) {
-          setChannels(p => p.map(c => c.id === chId ? { ...c, unread: (c.unread || 0) + newMsgs.length } : c));
-          newMsgs.forEach(m => sendNotif("スーパーこにチャット", `#${chId}: ${m.text || "ファイルが届きました"}`));
+          // 自分以外からのメッセージのみ未読カウント
+          const othersNewMsgs = newMsgs.filter(m => m.uid !== me?.id);
+          if (othersNewMsgs.length > 0) {
+            if (chId.startsWith("dm-")) {
+              setDmUnread(p => ({ ...p, [chId]: (p[chId] || 0) + othersNewMsgs.length }));
+            } else {
+              setChannels(p => p.map(c => c.id === chId ? { ...c, unread: (c.unread || 0) + othersNewMsgs.length } : c));
+            }
+            othersNewMsgs.forEach(m => sendNotif("スーパーこにチャット", `${m.name}: ${m.text || "ファイルが届きました"}`));
+          }
         }
         if (msgList.length > 0) lastMsgIds.current[chId] = msgList[msgList.length - 1].id;
         return { ...prev, [chId]: msgList };
       });
     } catch {}
-  }, [activeChannel, sendNotif]);
+  }, [activeChannel, me?.id, sendNotif]);
 
   // 初回 & ポーリング
   useEffect(() => {
     loadMessages(activeChannel);
     const timer = setInterval(() => {
-      // メッセージをポーリング
+      // メッセージをポーリング（チャンネル＋全DM）
       channels.forEach(ch => loadMessages(ch.id));
+      MEMBERS.filter(m => m.id !== me?.id).forEach(m => loadMessages(`dm-${m.id}`));
       // タスクもポーリング（全チャンネル）
       channels.forEach(async ch => {
         try {
@@ -434,8 +487,13 @@ export default function App() {
   const selectChannel = (id) => {
     setActiveChannel(id);
     setChannels(p => p.map(c => c.id === id ? { ...c, unread: 0 } : c));
+    if (id.startsWith("dm-")) setDmUnread(p => ({ ...p, [id]: 0 }));
     if (isMobile) setSidebarOpen(false);
     setPanel(null);
+    // 既読をRedisに保存
+    if (me?.id) {
+      apiSet(`read:${id}:${me.id}`, Date.now()).catch(() => {});
+    }
   };
 
   // --- メッセージ送信 ---
@@ -453,6 +511,8 @@ export default function App() {
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+    // 既読を記録
+    if (me?.id) apiSet(`read:${activeChannel}:${me.id}`, Date.now()).catch(() => {});
 
     // Redisに保存（楽観的更新後のメッセージリストをそのまま保存）
     try {
@@ -690,7 +750,16 @@ export default function App() {
               <div style={{ width: 26, height: 26, borderRadius: "50%", background: m.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>{m.avatar}</div>
               <div style={{ position: "absolute", bottom: -1, right: -1, width: 8, height: 8, borderRadius: "50%", background: statusColor(m.status), border: "2px solid #fff" }} />
             </div>
-            <span style={{ fontSize: 13, color: activeChannel === `dm-${m.id}` ? "#4f46e5" : "#475569", fontWeight: activeChannel === `dm-${m.id}` ? 700 : 400 }}>{m.name}</span>
+            <span style={{ fontSize: 13, color: activeChannel === `dm-${m.id}` ? "#4f46e5" : "#475569", fontWeight: activeChannel === `dm-${m.id}` ? 700 : 400, flex: 1 }}>{m.name}</span>
+            {(dmUnread[`dm-${m.id}`] || 0) > 0 && (
+              <span style={{
+                background: "#ef4444", color: "#fff",
+                borderRadius: "50%", fontSize: 11, fontWeight: 700,
+                minWidth: 20, height: 20,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                padding: "0 5px", flexShrink: 0,
+              }}>{dmUnread[`dm-${m.id}`]}</span>
+            )}
           </div>
         ))}
       </div>
@@ -991,6 +1060,10 @@ export default function App() {
                         </div>
                       )}
                       {/* リアクションボタン非表示 */}
+                      {/* 自分が送ったメッセージに既読表示 */}
+                      {isSelf && idx === msgs.length - 1 && (
+                        <ReadStatus channelId={activeChannel} msgTime={msg.time} myId={me?.id} members={members} />
+                      )}
                     </div>
                     {/* PCリアクションボタン非表示 */}
                   </div>
