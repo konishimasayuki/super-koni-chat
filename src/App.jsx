@@ -308,6 +308,9 @@ export default function App() {
   const [toast, setToast]             = useState(null);
   const [uploading, setUploading]     = useState(false);
   const [loading, setLoading]         = useState(true);
+  const [editMember, setEditMember]   = useState(null);
+  const [editForm, setEditForm]       = useState({ name: "", password: "" });
+  const [localMembers, setLocalMembers] = useState(MEMBERS.map(m => ({ ...m })));
 
   const bottomRef   = useRef(null);
   const textareaRef = useRef(null);
@@ -672,10 +675,6 @@ export default function App() {
   );
 
   // ---- TASK PANEL ----
-  // 管理者パネル
-  const [editMember, setEditMember] = useState(null);
-  const [editForm, setEditForm] = useState({ name: "", password: "" });
-  const [localMembers, setLocalMembers] = useState(MEMBERS.map(m => ({ ...m })));
 
   const AdminPanel = panel === "admin" && me?.admin ? (
     <div style={{
