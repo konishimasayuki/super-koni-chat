@@ -41,25 +41,38 @@ const AVATAR_COLORS = ["#f97316","#6366f1","#0ea5e9","#10b981","#f59e0b","#ec489
 function getUser() {
   try {
     const saved = localStorage.getItem("koni_chat_user");
-    if (saved) return JSON.parse(saved);
+    const expire = localStorage.getItem("koni_chat_expire");
+    if (saved && expire && Date.now() < parseInt(expire)) {
+      return JSON.parse(saved);
+    }
+    localStorage.removeItem("koni_chat_user");
+    localStorage.removeItem("koni_chat_expire");
   } catch {}
   return null;
 }
 
 function saveUser(user) {
   localStorage.setItem("koni_chat_user", JSON.stringify(user));
+  localStorage.setItem("koni_chat_expire", String(Date.now() + LOGIN_EXPIRE_DAYS * 24 * 60 * 60 * 1000));
+}
+
+function logoutUser() {
+  localStorage.removeItem("koni_chat_user");
+  localStorage.removeItem("koni_chat_expire");
 }
 
 // ============================================================
 // メンバー一覧（固定）
 // ============================================================
 const MEMBERS = [
-  { id: "konishi",  name: "小西",    avatar: "小", color: "#6366f1" },
-  { id: "masato",   name: "まさと",  avatar: "ま", color: "#0ea5e9" },
-  { id: "nakamura", name: "中村",    avatar: "中", color: "#10b981" },
-  { id: "user1",    name: "ユーザー1", avatar: "1", color: "#f59e0b" },
-  { id: "user2",    name: "ユーザー2", avatar: "2", color: "#ec4899" },
+  { id: "konishi",  name: "小西公幸",  avatar: "小", color: "#6366f1", password: "masa0224", admin: true },
+  { id: "masato",   name: "まさと",    avatar: "ま", color: "#0ea5e9", password: "masato",   admin: false },
+  { id: "nakamura", name: "中村祐希",  avatar: "中", color: "#10b981", password: "miami0383",admin: false },
+  { id: "user1",    name: "ユーザー1", avatar: "1",  color: "#f59e0b", password: "1234",     admin: false },
+  { id: "user2",    name: "ユーザー2", avatar: "2",  color: "#ec4899", password: "1234",     admin: false },
 ];
+
+const LOGIN_EXPIRE_DAYS = 7;
 
 
 // ============================================================
@@ -202,41 +215,59 @@ function FileCard({ file }) {
 // 名前入力画面
 // ============================================================
 function LoginScreen({ onLogin }) {
-  const [selectedId, setSelectedId] = useState("");
+  const [id, setId] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [showPass, setShowPass] = useState(false);
+
   const handleSubmit = () => {
-    const member = MEMBERS.find(m => m.id === selectedId);
-    if (!member) return;
-    saveUser(member);
-    onLogin(member);
+    const member = MEMBERS.find(m => m.id === id.trim().toLowerCase());
+    if (!member) { setError("IDが見つかりません"); return; }
+    if (member.password !== password) { setError("パスワードが違います"); return; }
+    const user = { id: member.id, name: member.name, avatar: member.avatar, color: member.color, admin: member.admin };
+    saveUser(user);
+    onLogin(user);
   };
+
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#f8fafc", fontFamily: "'Noto Sans JP',sans-serif", padding: 20 }}>
-      <div style={{ background: "#fff", borderRadius: 20, padding: "40px 32px", width: "100%", maxWidth: 400, boxShadow: "0 8px 40px rgba(0,0,0,0.1)", textAlign: "center" }}>
-        <img src="/logo.png" alt="スーパーこにチャット" style={{ height: 64, objectFit: "contain", marginBottom: 16 }} onError={e => e.target.style.display = "none"} />
-        <h1 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", marginBottom: 6 }}>スーパーこにチャット</h1>
-        <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 24 }}>あなたは誰ですか？</p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
-          {MEMBERS.map(m => (
-            <button key={m.id} onClick={() => setSelectedId(m.id)} style={{
-              display: "flex", alignItems: "center", gap: 14,
-              padding: "12px 16px", borderRadius: 12, cursor: "pointer",
-              border: selectedId === m.id ? `2px solid ${m.color}` : "2px solid #e8edf3",
-              background: selectedId === m.id ? `${m.color}11` : "#f8fafc",
-              transition: "all 0.15s",
-            }}>
-              <div style={{ width: 40, height: 40, borderRadius: "50%", background: m.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#fff", flexShrink: 0 }}>{m.avatar}</div>
-              <span style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>{m.name}</span>
-              {selectedId === m.id && <span style={{ marginLeft: "auto", color: m.color, fontSize: 18 }}>✓</span>}
-            </button>
-          ))}
+      <div style={{ background: "#fff", borderRadius: 20, padding: "40px 32px", width: "100%", maxWidth: 380, boxShadow: "0 8px 40px rgba(0,0,0,0.1)" }}>
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <img src="/logo.png" alt="スーパーこにチャット" style={{ height: 64, objectFit: "contain", marginBottom: 16 }} onError={e => e.target.style.display = "none"} />
+          <h1 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", marginBottom: 4 }}>スーパーこにチャット</h1>
+          <p style={{ fontSize: 13, color: "#94a3b8" }}>ログイン</p>
         </div>
-        <button onClick={handleSubmit} disabled={!selectedId} style={{
-          width: "100%", background: selectedId ? "linear-gradient(135deg,#6366f1,#0ea5e9)" : "#f1f5f9",
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: "#64748b", display: "block", marginBottom: 6 }}>ID</label>
+          <input value={id} onChange={e => { setId(e.target.value); setError(""); }}
+            onKeyDown={e => e.key === "Enter" && handleSubmit()}
+            placeholder="例: konishi"
+            style={{ width: "100%", border: "1.5px solid #e8edf3", borderRadius: 10, padding: "11px 14px", fontSize: 15, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+            onFocus={e => e.target.style.borderColor = "#6366f1"}
+            onBlur={e => e.target.style.borderColor = "#e8edf3"} />
+        </div>
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: "#64748b", display: "block", marginBottom: 6 }}>パスワード</label>
+          <div style={{ position: "relative" }}>
+            <input value={password} onChange={e => { setPassword(e.target.value); setError(""); }}
+              onKeyDown={e => e.key === "Enter" && handleSubmit()}
+              type={showPass ? "text" : "password"}
+              placeholder="パスワード"
+              style={{ width: "100%", border: "1.5px solid #e8edf3", borderRadius: 10, padding: "11px 44px 11px 14px", fontSize: 15, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+              onFocus={e => e.target.style.borderColor = "#6366f1"}
+              onBlur={e => e.target.style.borderColor = "#e8edf3"} />
+            <button onClick={() => setShowPass(p => !p)} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 16, color: "#94a3b8" }}>{showPass ? "🙈" : "👁"}</button>
+          </div>
+        </div>
+        {error && <div style={{ background: "#fee2e2", color: "#ef4444", borderRadius: 8, padding: "8px 12px", fontSize: 13, marginBottom: 14, textAlign: "center", fontWeight: 600 }}>{error}</div>}
+        <button onClick={handleSubmit} disabled={!id || !password} style={{
+          width: "100%", background: (id && password) ? "linear-gradient(135deg,#6366f1,#0ea5e9)" : "#f1f5f9",
           border: "none", borderRadius: 12, padding: "13px",
-          color: selectedId ? "#fff" : "#94a3b8",
-          fontSize: 15, fontWeight: 700, cursor: selectedId ? "pointer" : "default",
-          boxShadow: selectedId ? "0 4px 14px rgba(99,102,241,0.4)" : "none",
-        }}>はじめる →</button>
+          color: (id && password) ? "#fff" : "#94a3b8",
+          fontSize: 15, fontWeight: 700, cursor: (id && password) ? "pointer" : "default",
+          boxShadow: (id && password) ? "0 4px 14px rgba(99,102,241,0.4)" : "none",
+        }}>ログイン</button>
+        <div style={{ textAlign: "center", marginTop: 14, fontSize: 12, color: "#94a3b8" }}>7日間ログイン状態を保持します</div>
       </div>
     </div>
   );
@@ -603,21 +634,102 @@ export default function App() {
       </div>
 
       {/* User footer */}
-      <div style={{ padding: "10px 14px", borderTop: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 9 }}>
-        <div style={{ position: "relative" }}>
-          <div style={{ width: 32, height: 32, borderRadius: "50%", background: me.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff" }}>{me.avatar}</div>
-          <div style={{ position: "absolute", bottom: 0, right: 0, width: 9, height: 9, borderRadius: "50%", background: "#22c55e", border: "2px solid #fff" }} />
+      <div style={{ padding: "10px 14px", borderTop: "1px solid #f1f5f9", background: "#fff" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: me?.admin ? 8 : 0 }}>
+          <div style={{ position: "relative" }}>
+            <div style={{ width: 32, height: 32, borderRadius: "50%", background: me.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff" }}>{me.avatar}</div>
+            <div style={{ position: "absolute", bottom: 0, right: 0, width: 9, height: 9, borderRadius: "50%", background: "#22c55e", border: "2px solid #fff" }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{me.name}</span>
+              {me?.admin && <span style={{ fontSize: 10, background: "#6366f1", color: "#fff", borderRadius: 4, padding: "1px 5px", fontWeight: 700 }}>管理者</span>}
+            </div>
+            <div style={{ fontSize: 11, color: "#22c55e" }}>● オンライン</div>
+          </div>
+          <button onClick={requestNotif} title="通知設定" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: notifGranted ? "#6366f1" : "#94a3b8", padding: 4 }}>🔔</button>
+          <button onClick={() => { if (window.confirm("ログアウトしますか？")) { logoutUser(); setMe(null); } }} title="ログアウト" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "#94a3b8", padding: 4 }}>🚪</button>
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{me.name}</div>
-          <div style={{ fontSize: 11, color: "#22c55e" }}>● オンライン</div>
-        </div>
-        <button onClick={requestNotif} title="通知設定" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: notifGranted ? "#6366f1" : "#94a3b8", padding: 4 }}>🔔</button>
+        {me?.admin && (
+          <button onClick={() => setPanel(p => p === "admin" ? null : "admin")} style={{
+            width: "100%", background: panel === "admin" ? "#eef2ff" : "#f8fafc",
+            border: "1px solid #e8edf3", borderRadius: 8, padding: "6px",
+            color: panel === "admin" ? "#4f46e5" : "#64748b", cursor: "pointer",
+            fontSize: 12, fontWeight: 700,
+          }}>⚙️ 管理者設定</button>
+        )}
       </div>
     </div>
   );
 
   // ---- TASK PANEL ----
+  // 管理者パネル
+  const [editMember, setEditMember] = useState(null);
+  const [editForm, setEditForm] = useState({ name: "", password: "" });
+  const [localMembers, setLocalMembers] = useState(MEMBERS.map(m => ({ ...m })));
+
+  const AdminPanel = panel === "admin" && me?.admin ? (
+    <div style={{
+      width: isMobile ? "100%" : 300, flexShrink: 0,
+      background: "#fff", borderLeft: "1px solid #e8edf3",
+      display: "flex", flexDirection: "column",
+      position: isMobile ? "fixed" : "relative",
+      right: 0, top: 0, height: "100%", zIndex: isMobile ? 200 : 1,
+    }}>
+      <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>⚙️ 管理者設定</span>
+        <button onClick={() => setPanel(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#94a3b8" }}>✕</button>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 10 }}>メンバー管理</div>
+        {localMembers.map(m => (
+          <div key={m.id} style={{ background: "#f8fafc", border: "1px solid #e8edf3", borderRadius: 10, padding: "10px 12px", marginBottom: 8 }}>
+            {editMember === m.id ? (
+              <div>
+                <input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))}
+                  placeholder="名前" style={{ width: "100%", border: "1px solid #e8edf3", borderRadius: 6, padding: "6px 10px", fontSize: 13, marginBottom: 6, boxSizing: "border-box", fontFamily: "inherit", outline: "none" }} />
+                <input value={editForm.password} onChange={e => setEditForm(p => ({ ...p, password: e.target.value }))}
+                  placeholder="新しいパスワード" type="text" style={{ width: "100%", border: "1px solid #e8edf3", borderRadius: 6, padding: "6px 10px", fontSize: 13, marginBottom: 8, boxSizing: "border-box", fontFamily: "inherit", outline: "none" }} />
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => {
+                    setLocalMembers(prev => prev.map(lm => lm.id === m.id ? { ...lm, name: editForm.name || lm.name, password: editForm.password || lm.password } : lm));
+                    setEditMember(null);
+                    showToast("✅ 更新しました");
+                  }} style={{ flex: 1, background: "#6366f1", border: "none", borderRadius: 6, padding: 7, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>保存</button>
+                  <button onClick={() => setEditMember(null)} style={{ flex: 1, background: "#f1f5f9", border: "none", borderRadius: 6, padding: 7, color: "#64748b", fontSize: 12, cursor: "pointer" }}>キャンセル</button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: m.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0 }}>{m.avatar}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{m.name}</span>
+                    {m.admin && <span style={{ fontSize: 10, background: "#6366f1", color: "#fff", borderRadius: 4, padding: "1px 5px", fontWeight: 700 }}>管理者</span>}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#94a3b8" }}>ID: {m.id}</div>
+                </div>
+                <div style={{ display: "flex", gap: 4 }}>
+                  <button onClick={() => { setEditMember(m.id); setEditForm({ name: m.name, password: "" }); }} style={{ background: "#eef2ff", border: "none", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11, color: "#6366f1", fontWeight: 600 }}>編集</button>
+                  {!m.admin && (
+                    <button onClick={() => {
+                      setLocalMembers(prev => prev.map(lm => ({ ...lm, admin: lm.id === m.id ? true : lm.admin })));
+                      showToast(`${m.name}を管理者にしました`);
+                    }} style={{ background: "#f0fdf4", border: "none", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11, color: "#22c55e", fontWeight: 600 }}>管理者に</button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+        <div style={{ marginTop: 16, padding: "12px", background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 10 }}>
+          <div style={{ fontSize: 12, color: "#92400e", fontWeight: 600, marginBottom: 4 }}>⚠️ 注意</div>
+          <div style={{ fontSize: 11, color: "#b45309" }}>変更はこのセッション中のみ有効です。コードへの恒久的な変更は開発者に依頼してください。</div>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   const TaskPanel = panel ? (
     <div style={{
       width: isMobile ? "100%" : 272, flexShrink: 0,
@@ -853,7 +965,8 @@ export default function App() {
                   onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !isMobile) { e.preventDefault(); send(); } }}
                   placeholder={isDM ? `${dmMember?.name} にメッセージ...` : `# ${chInfo?.name || ""} にメッセージ...`}
                   rows={1}
-                  style={{ flex: 1, background: "none", border: "none", outline: "none", color: "#0f172a", fontSize: isMobile ? 15 : 14, lineHeight: 1.5, resize: "none", fontFamily: "inherit", minHeight: 24, maxHeight: 120 }} />
+                  style={{ flex: 1, background: "none", border: "none", outline: "none", color: "#0f172a", fontSize: isMobile ? 16 : 14, lineHeight: 1.5, resize: "none", fontFamily: "inherit", minHeight: 24, maxHeight: 120 }}
+                  onFocus={() => { if (isMobile) setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 300); }} />
                 <button onClick={() => send()} disabled={!input.trim() || uploading} style={{ background: input.trim() && !uploading ? "linear-gradient(135deg,#6366f1,#0ea5e9)" : "#f1f5f9", border: "none", borderRadius: isMobile ? 18 : 10, color: input.trim() && !uploading ? "#fff" : "#94a3b8", cursor: input.trim() && !uploading ? "pointer" : "default", padding: isMobile ? "8px 18px" : "7px 16px", fontSize: 13, fontWeight: 700, flexShrink: 0, boxShadow: input.trim() ? "0 2px 10px rgba(99,102,241,0.3)" : "none", transition: "all 0.15s" }}>送信</button>
               </div>
               {!isMobile && <div style={{ fontSize: 11, color: "#cbd5e1", marginTop: 4, paddingLeft: 4 }}>Enter で送信　Shift+Enter で改行　📎 ファイル　📹 Zoom　✅ タスク</div>}
@@ -861,12 +974,12 @@ export default function App() {
           </div>
 
           {/* SIDE PANEL（PC） */}
-          {!isMobile && TaskPanel}
+          {!isMobile && (panel === "admin" ? AdminPanel : TaskPanel)}
         </div>
       </div>
 
       {/* SIDE PANEL（モバイル） */}
-      {isMobile && TaskPanel}
+      {isMobile && (panel === "admin" ? AdminPanel : TaskPanel)}
 
       {/* Toast */}
       {toast && (
