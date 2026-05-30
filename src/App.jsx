@@ -242,7 +242,6 @@ function DashboardView({ tasks, channels, members, me, onSelectChannel, onToggle
       <div style={{
         background: "#fff", border: "1px solid #e8edf3", borderRadius: 10,
         padding: "10px 12px", marginBottom: 6,
-        borderLeft: `3px solid ${assignee?.color || "#6366f1"}`,
       }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
           <button onClick={() => onToggleTask(task.channelId, task.id)} style={{
@@ -253,10 +252,7 @@ function DashboardView({ tasks, channels, members, me, onSelectChannel, onToggle
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, color: "#0f172a", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{task.text}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4, flexWrap: "wrap" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                <div style={{ width: 14, height: 14, borderRadius: "50%", background: assignee?.color || "#6366f1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 7, fontWeight: 700, color: "#fff" }}>{assignee?.avatar}</div>
-                <span style={{ fontSize: 11, color: "#64748b" }}>{assignee?.name}</span>
-              </div>
+              <span style={{ fontSize: 11, color: "#64748b" }}>{assignee?.name}</span>
               {task.due && <span style={{ fontSize: 11, color: "#f59e0b", fontWeight: 600 }}>📅 {task.due}</span>}
             </div>
           </div>
@@ -1070,7 +1066,7 @@ export default function App() {
         {/* Channels */}
         {/* ダッシュボードボタン */}
         <div style={{ padding: "4px 12px 8px" }}>
-          <button onClick={() => setActiveView("dashboard")} style={{
+          <button onClick={() => { setActiveView("dashboard"); if (isMobile) setSidebarOpen(false); }} style={{
             width: "100%", display: "flex", alignItems: "center", gap: 8,
             background: activeView === "dashboard" ? "#eef2ff" : "#f8fafc",
             border: activeView === "dashboard" ? "1.5px solid #6366f1" : "1px solid #e8edf3",
@@ -1439,7 +1435,8 @@ export default function App() {
       {/* MAIN */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
 
-        {/* HEADER */}
+        {/* HEADER - チャット時のみ表示 */}
+        {activeView === "chat" && (
         <div style={{ height: isMobile ? 52 : 54, padding: isMobile ? "0 12px" : "0 20px", borderBottom: "1px solid #e8edf3", display: "flex", alignItems: "center", gap: 10, background: "#fff", flexShrink: 0 }}>
           {isMobile && (
             <button onClick={() => setSidebarOpen(true)} style={{ background: "none", border: "none", cursor: "pointer", padding: "6px 4px", position: "relative" }}>
