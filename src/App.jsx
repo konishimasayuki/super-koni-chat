@@ -1266,11 +1266,13 @@ export default function App() {
 
   const AdminPanel = panel === "admin" && me?.admin ? (
     <div style={{
-      width: isMobile ? "100%" : 300, flexShrink: 0,
+      width: "100%", flexShrink: 0,
       background: "#fff", borderLeft: "1px solid #e8edf3",
       display: "flex", flexDirection: "column",
-      position: isMobile ? "fixed" : "relative",
-      right: 0, top: 0, height: "100%", zIndex: isMobile ? 200 : 1,
+      position: "fixed",
+      right: 0, top: 0, height: "100%", zIndex: 200,
+      maxWidth: isMobile ? "100%" : 420,
+      boxShadow: "-4px 0 32px rgba(0,0,0,0.13)",
     }}>
       <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>⚙️ 管理者設定</span>
@@ -1636,7 +1638,12 @@ export default function App() {
           </div>}
 
           {/* SIDE PANEL（PC） */}
-          {!isMobile && panel === "admin" && AdminPanel}
+          {!isMobile && panel === "admin" && (
+            <>
+              <div onClick={() => setPanel(null)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.35)", zIndex: 199, backdropFilter: "blur(2px)" }} />
+              {AdminPanel}
+            </>
+          )}
           {!isMobile && panel === "note" && NotePanel}
           {!isMobile && panel === "task" && activeView === "chat" && TaskPanel}
         </div>
