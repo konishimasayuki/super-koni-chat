@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 // 定数・設定
 // ============================================================
 const APP_VERSION = "v1.0.0";
-const POLL_INTERVAL = 3000; // 3秒ポーリング
+const POLL_INTERVAL = 2000; // 2秒ポーリング
 
 const DEFAULT_CHANNELS = [
   { id: "sales",    name: "営業チーム", desc: "営業関連" },
