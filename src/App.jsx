@@ -868,6 +868,18 @@ export default function App() {
     showToast("📝 ノートを投稿しました");
   };
 
+  const deleteMessage = async (msgId) => {
+    if (!window.confirm("このメッセージを削除しますか？")) return;
+    const updated = (messages[activeChannel] || []).filter(m => m.id !== msgId);
+    setMessages(prev => ({ ...prev, [activeChannel]: updated }));
+    try {
+      const saveKey = activeChannel.startsWith("dm-") && me?.id
+        ? getDmKey(me.id, activeChannel.replace("dm-", ""))
+        : `messages:${activeChannel}`;
+      await apiSet(saveKey, updated);
+    } catch { showToast("削除に失敗しました"); }
+  };
+
   const deleteNote = async (nid) => {
     if (!window.confirm("このノートを削除しますか？")) return;
     const updated = (notes[activeChannel] || []).filter(n => n.id !== nid);
@@ -1396,7 +1408,17 @@ export default function App() {
                       {showHeader && (
                         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 2 }}>
                           <span style={{ fontWeight: 800, fontSize: 13, color: msg.color || "#6366f1" }}>{isSelf ? me.name : msg.name}</span>
-                          <span style={{ fontSize: 11, color: "#94a3b8" }}>{msg.time}</span>
+                          <span
+                            onClick={() => isSelf && deleteMessage(msg.id)}
+                            style={{
+                              fontSize: 11, color: "#94a3b8",
+                              cursor: isSelf ? "pointer" : "default",
+                              borderRadius: 4, padding: isSelf ? "1px 4px" : "0",
+                            }}
+                            title={isSelf ? "タップで削除" : ""}
+                            onMouseEnter={e => { if (isSelf) { e.currentTarget.style.background = "#fee2e2"; e.currentTarget.style.color = "#ef4444"; }}}
+                            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#94a3b8"; }}
+                          >{msg.time}{isSelf ? " 🗑" : ""}</span>
                         </div>
                       )}
                       {msg.text && <div style={{ fontSize: 14, color: "#334155", lineHeight: 1.65, wordBreak: "break-word", whiteSpace: "pre-wrap" }}>{msg.text}</div>}
