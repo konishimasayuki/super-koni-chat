@@ -231,6 +231,123 @@ function FileCard({ file }) {
 }
 
 // ============================================================
+// カレンダー月表示
+// ============================================================
+function MonthView({ events, currentDate, setCurrentDate, onSelectEvent }) {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+
+  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
+  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+
+  const getEventsForDay = (day) => {
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    return events.filter(e => e.date === dateStr || (e.endDate && e.date <= dateStr && e.endDate >= dateStr));
+  };
+
+  const days = ["日","月","火","水","木","金","土"];
+
+  return (
+    <div>
+      {/* 月ナビゲーション */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <button onClick={prevMonth} style={{ background: "#f8fafc", border: "1px solid #e8edf3", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 16, color: "#475569" }}>‹</button>
+        <span style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}>{year}年 {month + 1}月</span>
+        <button onClick={nextMonth} style={{ background: "#f8fafc", border: "1px solid #e8edf3", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 16, color: "#475569" }}>›</button>
+      </div>
+
+      {/* 曜日ヘッダー */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 4 }}>
+        {days.map((d, i) => (
+          <div key={d} style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: i === 0 ? "#ef4444" : i === 6 ? "#3b82f6" : "#64748b", padding: "4px 0" }}>{d}</div>
+        ))}
+      </div>
+
+      {/* 日付グリッド */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+        {Array.from({ length: firstDay }).map((_, i) => (
+          <div key={`empty-${i}`} style={{ minHeight: 60 }} />
+        ))}
+        {Array.from({ length: daysInMonth }).map((_, i) => {
+          const day = i + 1;
+          const dayEvents = getEventsForDay(day);
+          const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+          const dayOfWeek = (firstDay + i) % 7;
+          return (
+            <div key={day} style={{
+              minHeight: 60, border: "1px solid #f1f5f9", borderRadius: 8,
+              padding: "4px", background: isToday ? "#eef2ff" : "#fff",
+              cursor: dayEvents.length > 0 ? "pointer" : "default",
+            }}>
+              <div style={{
+                fontSize: 12, fontWeight: isToday ? 800 : 400,
+                color: isToday ? "#6366f1" : dayOfWeek === 0 ? "#ef4444" : dayOfWeek === 6 ? "#3b82f6" : "#475569",
+                marginBottom: 2,
+              }}>{day}</div>
+              {dayEvents.slice(0, 2).map(ev => (
+                <div key={ev.id} onClick={() => onSelectEvent(ev)} style={{
+                  background: ev.color, color: "#fff", borderRadius: 4,
+                  fontSize: 10, fontWeight: 600, padding: "1px 4px",
+                  marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  cursor: "pointer",
+                }}>{ev.title}</div>
+              ))}
+              {dayEvents.length > 2 && <div style={{ fontSize: 10, color: "#94a3b8" }}>+{dayEvents.length - 2}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// カレンダーリスト表示
+// ============================================================
+function ListView({ events, onSelectEvent }) {
+  const upcoming = events.filter(e => e.date >= new Date().toISOString().slice(0, 10)).slice(0, 20);
+  const past = events.filter(e => e.date < new Date().toISOString().slice(0, 10)).slice(-10).reverse();
+
+  const EventItem = ({ ev }) => (
+    <div onClick={() => onSelectEvent(ev)} style={{
+      display: "flex", gap: 12, alignItems: "flex-start",
+      padding: "10px 12px", borderRadius: 10, cursor: "pointer",
+      marginBottom: 6, border: "1px solid #f1f5f9", background: "#fff",
+      transition: "background 0.1s",
+    }}
+      onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
+      onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
+      <div style={{ width: 4, height: "100%", minHeight: 40, borderRadius: 4, background: ev.color, flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", marginBottom: 2 }}>{ev.title}</div>
+        <div style={{ fontSize: 12, color: "#64748b" }}>
+          📅 {ev.date}{ev.endDate ? ` 〜 ${ev.endDate}` : ""}{ev.time ? ` ${ev.time}` : ""}
+        </div>
+        {ev.memo && <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.memo}</div>}
+      </div>
+      <div style={{ width: 24, height: 24, borderRadius: "50%", background: ev.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff", flexShrink: 0 }}>{ev.avatar}</div>
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>📌 今後の予定</div>
+      {upcoming.length === 0 ? <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 16, padding: "12px 0" }}>予定はありません</div>
+        : upcoming.map(ev => <EventItem key={ev.id} ev={ev} />)}
+      {past.length > 0 && (
+        <>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#94a3b8", marginTop: 16, marginBottom: 8 }}>📂 過去の予定</div>
+          {past.map(ev => <EventItem key={ev.id} ev={ev} />)}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
 // 既読表示コンポーネント
 // ============================================================
 function ReadStatus({ channelId, msgId, myId, members, sentAt }) {
@@ -360,6 +477,13 @@ export default function App() {
   const [uploading, setUploading]     = useState(false);
   const [loading, setLoading]         = useState(true);
   const [editingChName, setEditingChName] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calEvents, setCalEvents] = useState([]);
+  const [calView, setCalView] = useState("month"); // "month" | "list"
+  const [calCurrentDate, setCalCurrentDate] = useState(new Date());
+  const [showEventAdd, setShowEventAdd] = useState(false);
+  const [eventForm, setEventForm] = useState({ title: "", date: "", time: "", endDate: "", memo: "", color: "#6366f1" });
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const [notes, setNotes] = useState({});
   const [noteInput, setNoteInput] = useState("");
   const [noteTitle, setNoteTitle] = useState("");
@@ -680,6 +804,49 @@ export default function App() {
     try { await apiSet(`tasks:${activeChannel}`, updated); } catch {}
   };
 
+  // カレンダーイベント取得
+  useEffect(() => {
+    const loadCalEvents = async () => {
+      try {
+        const data = await apiGet("calendar:events");
+        setCalEvents(Array.isArray(data) ? data : []);
+      } catch {}
+    };
+    loadCalEvents();
+    const timer = setInterval(loadCalEvents, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const addCalEvent = async () => {
+    if (!eventForm.title.trim() || !eventForm.date) return;
+    const ev = {
+      id: Date.now(),
+      title: eventForm.title.trim(),
+      date: eventForm.date,
+      time: eventForm.time,
+      endDate: eventForm.endDate,
+      memo: eventForm.memo.trim(),
+      color: eventForm.color,
+      uid: me.id, name: me.name, avatar: me.avatar,
+      createdAt: Date.now(),
+    };
+    const updated = [...calEvents, ev].sort((a, b) => a.date.localeCompare(b.date));
+    setCalEvents(updated);
+    setEventForm({ title: "", date: "", time: "", endDate: "", memo: "", color: "#6366f1" });
+    setShowEventAdd(false);
+    try { await apiSet("calendar:events", updated); } catch { showToast("保存に失敗しました"); }
+    showToast("📅 予定を追加しました");
+  };
+
+  const deleteCalEvent = async (id) => {
+    if (!window.confirm("この予定を削除しますか？")) return;
+    const updated = calEvents.filter(e => e.id !== id);
+    setCalEvents(updated);
+    setSelectedEvent(null);
+    try { await apiSet("calendar:events", updated); } catch {}
+    showToast("削除しました");
+  };
+
   const addNote = async (file = null) => {
     if (!noteInput.trim() && !file) return;
     const note = {
@@ -872,6 +1039,22 @@ export default function App() {
         ))}
       </div>
 
+        {/* カレンダーボタン */}
+        <div style={{ padding: "8px 12px 4px" }}>
+          <button onClick={() => setShowCalendar(true)} style={{
+            width: "100%", display: "flex", alignItems: "center", gap: 8,
+            background: "#f0fdf4", border: "1px solid #bbf7d0",
+            borderRadius: 10, padding: "10px 14px", cursor: "pointer",
+            fontSize: isMobile ? 14 : 15, fontWeight: 700, color: "#166534",
+            transition: "all 0.15s",
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = "#dcfce7"}
+            onMouseLeave={e => e.currentTarget.style.background = "#f0fdf4"}>
+            <span style={{ fontSize: 18 }}>📅</span>
+            <span>チームカレンダー</span>
+          </button>
+        </div>
+
       {/* User footer */}
       <div style={{ padding: "10px 14px", borderTop: "1px solid #f1f5f9", background: "#fff" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: me?.admin ? 8 : 0 }}>
@@ -930,7 +1113,7 @@ export default function App() {
             rows={4}
             style={{ width: "100%", border: "1px solid #e8edf3", borderRadius: 8, padding: "7px 10px", fontSize: 13, marginBottom: 8, boxSizing: "border-box", fontFamily: "inherit", outline: "none", resize: "none" }} />
           <div style={{ display: "flex", gap: 6 }}>
-            <input ref={noteFileRef} type="file" onChange={handleNoteFile} style={{ display: "none" }} />
+            <input ref={noteFileRef} type="file" onChange={handleNoteFile} accept="*/*" style={{ display: "none" }} />
             <button onClick={() => noteFileRef.current?.click()} style={{ background: "#f1f5f9", border: "1px solid #e8edf3", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 13, color: "#475569" }}>📎</button>
             <button onClick={() => addNote()} disabled={!noteInput.trim()} style={{ flex: 1, background: noteInput.trim() ? "linear-gradient(135deg,#6366f1,#0ea5e9)" : "#f1f5f9", border: "none", borderRadius: 8, padding: 7, color: noteInput.trim() ? "#fff" : "#94a3b8", fontSize: 13, fontWeight: 700, cursor: noteInput.trim() ? "pointer" : "default" }}>投稿</button>
             <button onClick={() => { setShowNoteAdd(false); setNoteInput(""); setNoteTitle(""); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "6px 12px", color: "#64748b", fontSize: 13, cursor: "pointer" }}>✕</button>
@@ -1257,7 +1440,7 @@ export default function App() {
               paddingBottom: isMobile ? "max(12px, env(safe-area-inset-bottom))" : "14px",
             }}>
               <div style={{ marginBottom: 6, display: "flex", gap: 4 }}>
-                <input ref={fileInputRef} type="file" onChange={handleFile} style={{ display: "none" }} accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar" />
+                <input ref={fileInputRef} type="file" onChange={handleFile} style={{ display: "none" }} accept="*/*" />
                 <button onClick={() => fileInputRef.current?.click()} disabled={uploading} title="ファイル添付" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: uploading ? "#cbd5e1" : "#94a3b8", padding: "3px 5px", borderRadius: 6 }}
                   onMouseEnter={e => { if (!uploading) e.currentTarget.style.color = "#6366f1"; }}
                   onMouseLeave={e => e.currentTarget.style.color = uploading ? "#cbd5e1" : "#94a3b8"}>📎</button>
@@ -1291,6 +1474,107 @@ export default function App() {
 
       {/* SIDE PANEL（モバイル） */}
       {isMobile && (panel === "admin" ? AdminPanel : panel === "note" ? NotePanel : TaskPanel)}
+
+      {/* カレンダーモーダル */}
+      {showCalendar && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500, backdropFilter: "blur(4px)", padding: 16 }}
+          onClick={() => { setShowCalendar(false); setSelectedEvent(null); setShowEventAdd(false); }}>
+          <div style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 640, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden" }}
+            onClick={e => e.stopPropagation()}>
+
+            {/* カレンダーヘッダー */}
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 22 }}>📅</span>
+                <span style={{ fontSize: 17, fontWeight: 800, color: "#0f172a" }}>チームカレンダー</span>
+              </div>
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <button onClick={() => setCalView("month")} style={{ background: calView === "month" ? "#eef2ff" : "#f8fafc", border: "1px solid #e8edf3", borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontSize: 12, fontWeight: 700, color: calView === "month" ? "#4f46e5" : "#64748b" }}>月</button>
+                <button onClick={() => setCalView("list")} style={{ background: calView === "list" ? "#eef2ff" : "#f8fafc", border: "1px solid #e8edf3", borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontSize: 12, fontWeight: 700, color: calView === "list" ? "#4f46e5" : "#64748b" }}>リスト</button>
+                <button onClick={() => setShowEventAdd(p => !p)} style={{ background: "linear-gradient(135deg,#6366f1,#0ea5e9)", border: "none", borderRadius: 8, padding: "6px 14px", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>＋予定追加</button>
+                <button onClick={() => { setShowCalendar(false); setSelectedEvent(null); setShowEventAdd(false); }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "#94a3b8" }}>✕</button>
+              </div>
+            </div>
+
+            {/* 予定追加フォーム */}
+            {showEventAdd && (
+              <div style={{ padding: "14px 20px", borderBottom: "1px solid #f1f5f9", background: "#f8fafc", flexShrink: 0 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+                  <input value={eventForm.title} onChange={e => setEventForm(p => ({ ...p, title: e.target.value }))}
+                    placeholder="予定のタイトル *" autoFocus
+                    style={{ gridColumn: "1/-1", border: "1px solid #e8edf3", borderRadius: 8, padding: "8px 12px", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+                  <div>
+                    <div style={{ fontSize: 11, color: "#64748b", marginBottom: 3, fontWeight: 600 }}>開始日 *</div>
+                    <input type="date" value={eventForm.date} onChange={e => setEventForm(p => ({ ...p, date: e.target.value }))}
+                      style={{ width: "100%", border: "1px solid #e8edf3", borderRadius: 8, padding: "7px 10px", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: "#64748b", marginBottom: 3, fontWeight: 600 }}>時間</div>
+                    <input type="time" value={eventForm.time} onChange={e => setEventForm(p => ({ ...p, time: e.target.value }))}
+                      style={{ width: "100%", border: "1px solid #e8edf3", borderRadius: 8, padding: "7px 10px", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: "#64748b", marginBottom: 3, fontWeight: 600 }}>終了日</div>
+                    <input type="date" value={eventForm.endDate} onChange={e => setEventForm(p => ({ ...p, endDate: e.target.value }))}
+                      style={{ width: "100%", border: "1px solid #e8edf3", borderRadius: 8, padding: "7px 10px", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: "#64748b", marginBottom: 3, fontWeight: 600 }}>色</div>
+                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                      {["#6366f1","#ef4444","#f97316","#22c55e","#0ea5e9","#a855f7","#f59e0b","#14b8a6"].map(c => (
+                        <button key={c} onClick={() => setEventForm(p => ({ ...p, color: c }))} style={{ width: 24, height: 24, borderRadius: "50%", background: c, border: eventForm.color === c ? "3px solid #0f172a" : "2px solid transparent", cursor: "pointer" }} />
+                      ))}
+                    </div>
+                  </div>
+                  <input value={eventForm.memo} onChange={e => setEventForm(p => ({ ...p, memo: e.target.value }))}
+                    placeholder="メモ（任意）"
+                    style={{ gridColumn: "1/-1", border: "1px solid #e8edf3", borderRadius: 8, padding: "8px 12px", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                  <button onClick={() => { setShowEventAdd(false); setEventForm({ title: "", date: "", time: "", endDate: "", memo: "", color: "#6366f1" }); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "7px 16px", color: "#64748b", cursor: "pointer", fontSize: 13 }}>キャンセル</button>
+                  <button onClick={addCalEvent} disabled={!eventForm.title.trim() || !eventForm.date} style={{ background: (eventForm.title.trim() && eventForm.date) ? "linear-gradient(135deg,#6366f1,#0ea5e9)" : "#f1f5f9", border: "none", borderRadius: 8, padding: "7px 20px", color: (eventForm.title.trim() && eventForm.date) ? "#fff" : "#94a3b8", cursor: (eventForm.title.trim() && eventForm.date) ? "pointer" : "default", fontSize: 13, fontWeight: 700 }}>追加</button>
+                </div>
+              </div>
+            )}
+
+            {/* カレンダー本体 */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
+              {calView === "month" ? (
+                <MonthView events={calEvents} currentDate={calCurrentDate} setCurrentDate={setCalCurrentDate} onSelectEvent={setSelectedEvent} />
+              ) : (
+                <ListView events={calEvents} onSelectEvent={setSelectedEvent} />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* イベント詳細モーダル */}
+      {selectedEvent && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 600, padding: 20 }}
+          onClick={() => setSelectedEvent(null)}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: 380, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 14, height: 14, borderRadius: "50%", background: selectedEvent.color, flexShrink: 0, marginTop: 2 }} />
+                <div style={{ fontSize: 17, fontWeight: 800, color: "#0f172a" }}>{selectedEvent.title}</div>
+              </div>
+              <button onClick={() => setSelectedEvent(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#94a3b8" }}>✕</button>
+            </div>
+            <div style={{ fontSize: 13, color: "#475569", marginBottom: 6 }}>
+              📅 {selectedEvent.date}{selectedEvent.endDate ? ` 〜 ${selectedEvent.endDate}` : ""}
+              {selectedEvent.time && ` ${selectedEvent.time}`}
+            </div>
+            {selectedEvent.memo && <div style={{ fontSize: 13, color: "#334155", background: "#f8fafc", borderRadius: 8, padding: "8px 12px", marginBottom: 12, lineHeight: 1.6 }}>{selectedEvent.memo}</div>}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
+              <div style={{ width: 22, height: 22, borderRadius: "50%", background: selectedEvent.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#fff" }}>{selectedEvent.avatar}</div>
+              <span style={{ fontSize: 12, color: "#64748b" }}>{selectedEvent.name} が追加</span>
+            </div>
+            <button onClick={() => deleteCalEvent(selectedEvent.id)} style={{ width: "100%", background: "#fee2e2", border: "none", borderRadius: 10, padding: "10px", color: "#ef4444", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>🗑 この予定を削除</button>
+          </div>
+        </div>
+      )}
 
       {/* Toast */}
       {toast && (
