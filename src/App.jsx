@@ -233,14 +233,7 @@ function FileCard({ file }) {
 // ============================================================
 // ダッシュボード
 // ============================================================
-function DashboardView({ tasks, channels, members, me, onSelectChannel, onToggleTask, onDeleteTask }) {
-  const allTasks = channels.flatMap(ch => 
-    (tasks[ch.id] || []).filter(t => !t.done).map(t => ({ ...t, channelId: ch.id, channelName: ch.name }))
-  );
-
-  const myTasks = allTasks.filter(t => t.assignee === me?.id);
-  const otherTasks = allTasks.filter(t => t.assignee !== me?.id);
-
+function DashboardView({ tasks, channels, members, me, onSelectChannel, onToggleTask, isMobile }) {
   const getMember = (id) => members.find(m => m.id === id);
 
   const TaskCard = ({ task }) => {
@@ -258,11 +251,11 @@ function DashboardView({ tasks, channels, members, me, onSelectChannel, onToggle
             cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
           }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, color: "#0f172a", fontWeight: 500 }}>{task.text}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 13, color: "#0f172a", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{task.text}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4, flexWrap: "wrap" }}>
               <button onClick={() => onSelectChannel(task.channelId)} style={{
                 background: "#eef2ff", border: "none", borderRadius: 6,
-                padding: "2px 8px", cursor: "pointer", fontSize: 11,
+                padding: "2px 7px", cursor: "pointer", fontSize: 11,
                 color: "#4f46e5", fontWeight: 600,
               }}># {task.channelName}</button>
               <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
@@ -277,47 +270,61 @@ function DashboardView({ tasks, channels, members, me, onSelectChannel, onToggle
     );
   };
 
+  const allTasks = channels.flatMap(ch =>
+    (tasks[ch.id] || []).filter(t => !t.done).map(t => ({ ...t, channelId: ch.id, channelName: ch.name }))
+  );
+
   return (
-    <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px", background: "#f8fafc" }}>
-      {/* ヘッダー */}
+    <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px 14px" : "24px 28px", background: "#f8fafc" }}>
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", marginBottom: 4 }}>🏠 ダッシュボード</div>
         <div style={{ fontSize: 13, color: "#94a3b8" }}>未完了タスク一覧</div>
       </div>
 
-      {/* 自分のタスク */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-          <div style={{ width: 28, height: 28, borderRadius: "50%", background: me?.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>{me?.avatar}</div>
-          <span style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>自分のタスク</span>
-          <span style={{ background: myTasks.length > 0 ? "#6366f1" : "#e2e8f0", color: myTasks.length > 0 ? "#fff" : "#94a3b8", borderRadius: 10, fontSize: 11, padding: "1px 8px", fontWeight: 700 }}>{myTasks.length}</span>
-        </div>
-        {myTasks.length === 0
-          ? <div style={{ fontSize: 13, color: "#94a3b8", padding: "12px 0", textAlign: "center" }}>自分のタスクはありません 🎉</div>
-          : myTasks.map(t => <TaskCard key={`${t.channelId}-${t.id}`} task={t} />)
-        }
-      </div>
-
-      {/* 全チャンネルのタスク */}
-      {channels.map(ch => {
-        const chTasks = (tasks[ch.id] || []).filter(t => !t.done);
-        if (chTasks.length === 0) return null;
-        return (
-          <div key={ch.id} style={{ marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-              <span style={{ color: "#6366f1", fontWeight: 700 }}>#</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{ch.name}</span>
-              <span style={{ background: "#fef3c7", color: "#92400e", borderRadius: 10, fontSize: 11, padding: "1px 7px", fontWeight: 700 }}>{chTasks.length}</span>
-            </div>
-            {chTasks.map(t => <TaskCard key={`${ch.id}-${t.id}`} task={{ ...t, channelId: ch.id, channelName: ch.name }} />)}
-          </div>
-        );
-      })}
-
       {allTasks.length === 0 && (
         <div style={{ textAlign: "center", padding: "60px 20px", color: "#94a3b8" }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
           <div style={{ fontSize: 16, fontWeight: 700, color: "#64748b" }}>全タスク完了！</div>
+        </div>
+      )}
+
+      {/* PC版: チャンネルを4列グリッド */}
+      {!isMobile ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+          {channels.map(ch => {
+            const chTasks = (tasks[ch.id] || []).filter(t => !t.done);
+            return (
+              <div key={ch.id} style={{ background: "#fff", borderRadius: 14, padding: "14px", border: "1px solid #e8edf3", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                  <span style={{ color: "#6366f1", fontWeight: 700 }}>#</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ch.name}</span>
+                  <span style={{ background: chTasks.length > 0 ? "#fef3c7" : "#f1f5f9", color: chTasks.length > 0 ? "#92400e" : "#94a3b8", borderRadius: 10, fontSize: 11, padding: "1px 7px", fontWeight: 700, flexShrink: 0 }}>{chTasks.length}</span>
+                </div>
+                {chTasks.length === 0
+                  ? <div style={{ fontSize: 12, color: "#94a3b8", textAlign: "center", padding: "16px 0" }}>タスクなし ✅</div>
+                  : chTasks.map(t => <TaskCard key={`${ch.id}-${t.id}`} task={{ ...t, channelId: ch.id, channelName: ch.name }} />)
+                }
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* モバイル版: 縦並び */
+        <div>
+          {channels.map(ch => {
+            const chTasks = (tasks[ch.id] || []).filter(t => !t.done);
+            if (chTasks.length === 0) return null;
+            return (
+              <div key={ch.id} style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                  <span style={{ color: "#6366f1", fontWeight: 700 }}>#</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{ch.name}</span>
+                  <span style={{ background: "#fef3c7", color: "#92400e", borderRadius: 10, fontSize: 11, padding: "1px 7px", fontWeight: 700 }}>{chTasks.length}</span>
+                </div>
+                {chTasks.map(t => <TaskCard key={`${ch.id}-${t.id}`} task={{ ...t, channelId: ch.id, channelName: ch.name }} />)}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -1506,9 +1513,9 @@ export default function App() {
               channels={channels}
               members={members}
               me={me}
+              isMobile={isMobile}
               onSelectChannel={(chId) => selectChannel(chId)}
               onToggleTask={(chId, tid) => toggleTask(tid, chId)}
-              onDeleteTask={(chId, tid) => deleteTaskFromChannel(chId, tid)}
             />
           )}
           {/* MESSAGES */}
