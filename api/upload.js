@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     const fileType = req.headers['x-file-type'] || 'application/octet-stream';
     const date = new Date();
     const folder = `koni-chat/${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
-    const safeName = fileName.replace(/[^a-zA-Z0-9._\-\u3000-\u9fff\u30a0-\u30ff\u3040-\u309f]/g, '_');
+    const safeName = encodeURIComponent(fileName);
     const blobPath = `${folder}/${Date.now()}_${safeName}`;
 
     const blob = await put(blobPath, req, {
