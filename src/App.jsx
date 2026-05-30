@@ -1435,8 +1435,7 @@ export default function App() {
       {/* MAIN */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
 
-        {/* HEADER - チャット時のみ表示 */}
-        {activeView === "chat" && (
+        {/* HEADER */}
         <div style={{ height: isMobile ? 52 : 54, padding: isMobile ? "0 12px" : "0 20px", borderBottom: "1px solid #e8edf3", display: "flex", alignItems: "center", gap: 10, background: "#fff", flexShrink: 0 }}>
           {isMobile && (
             <button onClick={() => setSidebarOpen(true)} style={{ background: "none", border: "none", cursor: "pointer", padding: "6px 4px", position: "relative" }}>
