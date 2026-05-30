@@ -231,6 +231,100 @@ function FileCard({ file }) {
 }
 
 // ============================================================
+// ダッシュボード
+// ============================================================
+function DashboardView({ tasks, channels, members, me, onSelectChannel, onToggleTask, onDeleteTask }) {
+  const allTasks = channels.flatMap(ch => 
+    (tasks[ch.id] || []).filter(t => !t.done).map(t => ({ ...t, channelId: ch.id, channelName: ch.name }))
+  );
+
+  const myTasks = allTasks.filter(t => t.assignee === me?.id);
+  const otherTasks = allTasks.filter(t => t.assignee !== me?.id);
+
+  const getMember = (id) => members.find(m => m.id === id);
+
+  const TaskCard = ({ task }) => {
+    const assignee = getMember(task.assignee);
+    return (
+      <div style={{
+        background: "#fff", border: "1px solid #e8edf3", borderRadius: 10,
+        padding: "10px 12px", marginBottom: 6,
+        borderLeft: `3px solid ${assignee?.color || "#6366f1"}`,
+      }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+          <button onClick={() => onToggleTask(task.channelId, task.id)} style={{
+            width: 18, height: 18, borderRadius: 5, flexShrink: 0, marginTop: 1,
+            background: "#fff", border: "2px solid #cbd5e1",
+            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, color: "#0f172a", fontWeight: 500 }}>{task.text}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+              <button onClick={() => onSelectChannel(task.channelId)} style={{
+                background: "#eef2ff", border: "none", borderRadius: 6,
+                padding: "2px 8px", cursor: "pointer", fontSize: 11,
+                color: "#4f46e5", fontWeight: 600,
+              }}># {task.channelName}</button>
+              <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                <div style={{ width: 14, height: 14, borderRadius: "50%", background: assignee?.color || "#6366f1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 7, fontWeight: 700, color: "#fff" }}>{assignee?.avatar}</div>
+                <span style={{ fontSize: 11, color: "#64748b" }}>{assignee?.name}</span>
+              </div>
+              {task.due && <span style={{ fontSize: 11, color: "#f59e0b", fontWeight: 600 }}>📅 {task.due}</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px", background: "#f8fafc" }}>
+      {/* ヘッダー */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", marginBottom: 4 }}>🏠 ダッシュボード</div>
+        <div style={{ fontSize: 13, color: "#94a3b8" }}>未完了タスク一覧</div>
+      </div>
+
+      {/* 自分のタスク */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{ width: 28, height: 28, borderRadius: "50%", background: me?.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>{me?.avatar}</div>
+          <span style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>自分のタスク</span>
+          <span style={{ background: myTasks.length > 0 ? "#6366f1" : "#e2e8f0", color: myTasks.length > 0 ? "#fff" : "#94a3b8", borderRadius: 10, fontSize: 11, padding: "1px 8px", fontWeight: 700 }}>{myTasks.length}</span>
+        </div>
+        {myTasks.length === 0
+          ? <div style={{ fontSize: 13, color: "#94a3b8", padding: "12px 0", textAlign: "center" }}>自分のタスクはありません 🎉</div>
+          : myTasks.map(t => <TaskCard key={`${t.channelId}-${t.id}`} task={t} />)
+        }
+      </div>
+
+      {/* 全チャンネルのタスク */}
+      {channels.map(ch => {
+        const chTasks = (tasks[ch.id] || []).filter(t => !t.done);
+        if (chTasks.length === 0) return null;
+        return (
+          <div key={ch.id} style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <span style={{ color: "#6366f1", fontWeight: 700 }}>#</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{ch.name}</span>
+              <span style={{ background: "#fef3c7", color: "#92400e", borderRadius: 10, fontSize: 11, padding: "1px 7px", fontWeight: 700 }}>{chTasks.length}</span>
+            </div>
+            {chTasks.map(t => <TaskCard key={`${ch.id}-${t.id}`} task={{ ...t, channelId: ch.id, channelName: ch.name }} />)}
+          </div>
+        );
+      })}
+
+      {allTasks.length === 0 && (
+        <div style={{ textAlign: "center", padding: "60px 20px", color: "#94a3b8" }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "#64748b" }}>全タスク完了！</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
 // カレンダー月表示
 // ============================================================
 function MonthView({ events, currentDate, setCurrentDate, onSelectEvent }) {
@@ -479,6 +573,7 @@ export default function App() {
   const [uploading, setUploading]     = useState(false);
   const [loading, setLoading]         = useState(true);
   const [editingChName, setEditingChName] = useState(false);
+  const [activeView, setActiveView] = useState("dashboard"); // "dashboard" | "chat"
   const [showCalendar, setShowCalendar] = useState(false);
   const [calEvents, setCalEvents] = useState([]);
   // calViewは不要（両方表示）
@@ -672,6 +767,7 @@ export default function App() {
 
   // --- チャンネル選択 ---
   const selectChannel = (id) => {
+    setActiveView("chat");
     setActiveChannel(id);
     setChannels(p => p.map(c => c.id === id ? { ...c, unread: 0 } : c));
     if (id.startsWith("dm-")) setDmUnread(p => ({ ...p, [id]: 0 }));
@@ -800,10 +896,17 @@ export default function App() {
     try { await apiSet(`tasks:${activeChannel}`, updated); } catch {}
   };
 
-  const toggleTask = async (tid) => {
-    const updated = chTasks.map(t => t.id === tid ? { ...t, done: !t.done } : t);
-    setTasks(prev => ({ ...prev, [activeChannel]: updated }));
-    try { await apiSet(`tasks:${activeChannel}`, updated); } catch {}
+  const toggleTask = async (tid, channelId = activeChannel) => {
+    const current = tasks[channelId] || [];
+    const updated = current.map(t => t.id === tid ? { ...t, done: !t.done } : t);
+    setTasks(prev => ({ ...prev, [channelId]: updated }));
+    try { await apiSet(`tasks:${channelId}`, updated); } catch {}
+  };
+
+  const deleteTaskFromChannel = async (channelId, tid) => {
+    const updated = (tasks[channelId] || []).filter(t => t.id !== tid);
+    setTasks(prev => ({ ...prev, [channelId]: updated }));
+    try { await apiSet(`tasks:${channelId}`, updated); } catch {}
   };
 
   // カレンダーイベント取得
@@ -965,6 +1068,21 @@ export default function App() {
         )}
 
         {/* Channels */}
+        {/* ダッシュボードボタン */}
+        <div style={{ padding: "4px 12px 8px" }}>
+          <button onClick={() => setActiveView("dashboard")} style={{
+            width: "100%", display: "flex", alignItems: "center", gap: 8,
+            background: activeView === "dashboard" ? "#eef2ff" : "#f8fafc",
+            border: activeView === "dashboard" ? "1.5px solid #6366f1" : "1px solid #e8edf3",
+            borderRadius: 10, padding: "9px 14px", cursor: "pointer",
+            fontSize: isMobile ? 14 : 15, fontWeight: 700,
+            color: activeView === "dashboard" ? "#4f46e5" : "#475569",
+          }}>
+            <span style={{ fontSize: 18 }}>🏠</span>
+            <span>ダッシュボード</span>
+          </button>
+        </div>
+
         <div style={{ padding: "6px 16px 3px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: isMobile ? 11 : 12 }}>チャンネル</span>
           <button onClick={() => setShowNewCh(true)} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: 20, padding: "0 2px" }}
@@ -1381,8 +1499,20 @@ export default function App() {
         </div>
 
         <div style={{ flex: 1, display: "flex", minHeight: 0, overflow: "hidden" }}>
+          {/* DASHBOARD */}
+          {activeView === "dashboard" && (
+            <DashboardView
+              tasks={tasks}
+              channels={channels}
+              members={members}
+              me={me}
+              onSelectChannel={(chId) => selectChannel(chId)}
+              onToggleTask={(chId, tid) => toggleTask(tid, chId)}
+              onDeleteTask={(chId, tid) => deleteTaskFromChannel(chId, tid)}
+            />
+          )}
           {/* MESSAGES */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
+          {activeView === "chat" && <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
             <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "12px 10px" : "18px 22px", WebkitOverflowScrolling: "touch" }}>
               {msgs.length === 0 && (
                 <div style={{ textAlign: "center", padding: "80px 20px", color: "#94a3b8" }}>
@@ -1489,10 +1619,10 @@ export default function App() {
               </div>
               {!isMobile && <div style={{ fontSize: 11, color: "#cbd5e1", marginTop: 4, paddingLeft: 4 }}>Enter で送信　Shift+Enter で改行　📎 ファイル　📹 Zoom　✅ タスク</div>}
             </div>
-          </div>
+          </div>}
 
           {/* SIDE PANEL（PC） */}
-          {!isMobile && (panel === "admin" ? AdminPanel : panel === "note" ? NotePanel : TaskPanel)}
+          {activeView === "chat" && !isMobile && (panel === "admin" ? AdminPanel : panel === "note" ? NotePanel : TaskPanel)}
         </div>
       </div>
 
