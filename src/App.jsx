@@ -308,8 +308,10 @@ function MonthView({ events, currentDate, setCurrentDate, onSelectEvent }) {
 // カレンダーリスト表示
 // ============================================================
 function ListView({ events, onSelectEvent }) {
-  const upcoming = events.filter(e => e.date >= new Date().toISOString().slice(0, 10)).slice(0, 20);
-  const past = events.filter(e => e.date < new Date().toISOString().slice(0, 10)).slice(-10).reverse();
+  const today = new Date().toISOString().slice(0, 10);
+  const weekLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const upcoming = events.filter(e => e.date >= today && e.date <= weekLater).sort((a, b) => a.date.localeCompare(b.date));
+  const past = events.filter(e => e.date < today).slice(-5).reverse();
 
   const EventItem = ({ ev }) => (
     <div onClick={() => onSelectEvent(ev)} style={{
@@ -334,8 +336,8 @@ function ListView({ events, onSelectEvent }) {
 
   return (
     <div>
-      <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>📌 今後の予定</div>
-      {upcoming.length === 0 ? <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 16, padding: "12px 0" }}>予定はありません</div>
+      <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a", marginBottom: 8 }}>📌 直近1週間の予定</div>
+      {upcoming.length === 0 ? <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 16, padding: "12px 0" }}>直近1週間の予定はありません</div>
         : upcoming.map(ev => <EventItem key={ev.id} ev={ev} />)}
       {past.length > 0 && (
         <>
@@ -479,7 +481,7 @@ export default function App() {
   const [editingChName, setEditingChName] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [calEvents, setCalEvents] = useState([]);
-  const [calView, setCalView] = useState("month"); // "month" | "list"
+  // calViewは不要（両方表示）
   const [calCurrentDate, setCalCurrentDate] = useState(new Date());
   const [showEventAdd, setShowEventAdd] = useState(false);
   const [eventForm, setEventForm] = useState({ title: "", date: "", time: "", endDate: "", memo: "", color: "#6366f1" });
@@ -1489,8 +1491,7 @@ export default function App() {
                 <span style={{ fontSize: 17, fontWeight: 800, color: "#0f172a" }}>チームカレンダー</span>
               </div>
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <button onClick={() => setCalView("month")} style={{ background: calView === "month" ? "#eef2ff" : "#f8fafc", border: "1px solid #e8edf3", borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontSize: 12, fontWeight: 700, color: calView === "month" ? "#4f46e5" : "#64748b" }}>月</button>
-                <button onClick={() => setCalView("list")} style={{ background: calView === "list" ? "#eef2ff" : "#f8fafc", border: "1px solid #e8edf3", borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontSize: 12, fontWeight: 700, color: calView === "list" ? "#4f46e5" : "#64748b" }}>リスト</button>
+
                 <button onClick={() => setShowEventAdd(p => !p)} style={{ background: "linear-gradient(135deg,#6366f1,#0ea5e9)", border: "none", borderRadius: 8, padding: "6px 14px", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>＋予定追加</button>
                 <button onClick={() => { setShowCalendar(false); setSelectedEvent(null); setShowEventAdd(false); }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "#94a3b8" }}>✕</button>
               </div>
@@ -1504,19 +1505,19 @@ export default function App() {
                     placeholder="予定のタイトル *" autoFocus
                     style={{ gridColumn: "1/-1", border: "1px solid #e8edf3", borderRadius: 8, padding: "8px 12px", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
                   <div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginBottom: 3, fontWeight: 600 }}>開始日 *</div>
+                    <div style={{ fontSize: 11, color: "#64748b", marginBottom: 3, fontWeight: 600 }}>開始日 * （カレンダーから選択可）</div>
                     <input type="date" value={eventForm.date} onChange={e => setEventForm(p => ({ ...p, date: e.target.value }))}
-                      style={{ width: "100%", border: "1px solid #e8edf3", borderRadius: 8, padding: "7px 10px", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+                      style={{ width: "100%", border: "1.5px solid #6366f1", borderRadius: 8, padding: "8px 10px", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box", background: "#fafafa" }} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginBottom: 3, fontWeight: 600 }}>時間</div>
+                    <div style={{ fontSize: 11, color: "#64748b", marginBottom: 3, fontWeight: 600 }}>時間（任意）</div>
                     <input type="time" value={eventForm.time} onChange={e => setEventForm(p => ({ ...p, time: e.target.value }))}
-                      style={{ width: "100%", border: "1px solid #e8edf3", borderRadius: 8, padding: "7px 10px", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+                      style={{ width: "100%", border: "1px solid #e8edf3", borderRadius: 8, padding: "8px 10px", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginBottom: 3, fontWeight: 600 }}>終了日</div>
+                    <div style={{ fontSize: 11, color: "#64748b", marginBottom: 3, fontWeight: 600 }}>終了日（任意）</div>
                     <input type="date" value={eventForm.endDate} onChange={e => setEventForm(p => ({ ...p, endDate: e.target.value }))}
-                      style={{ width: "100%", border: "1px solid #e8edf3", borderRadius: 8, padding: "7px 10px", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+                      style={{ width: "100%", border: "1px solid #e8edf3", borderRadius: 8, padding: "8px 10px", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
                   </div>
                   <div>
                     <div style={{ fontSize: 11, color: "#64748b", marginBottom: 3, fontWeight: 600 }}>色</div>
