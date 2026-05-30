@@ -1089,26 +1089,16 @@ export default function App() {
         {channels.map(ch => (
           <div key={ch.id}
             onClick={() => selectChannel(ch.id)}
-
             style={{
               display: "flex", alignItems: "center", gap: 7,
               padding: isMobile ? "10px 16px" : "6px 16px", cursor: "pointer",
               background: activeChannel === ch.id ? "#eef2ff" : "transparent",
               borderRight: activeChannel === ch.id ? "3px solid #6366f1" : "3px solid transparent",
               color: activeChannel === ch.id ? "#4f46e5" : "#475569",
-              fontWeight: activeChannel === ch.id ? 700 : 400, fontSize: 13,
-              position: "relative",
+              fontWeight: activeChannel === ch.id ? 700 : 400, fontSize: isMobile ? 13 : 15,
             }}
-            onMouseEnter={e => {
-              if (activeChannel !== ch.id) e.currentTarget.style.background = "#f8fafc";
-              const btn = e.currentTarget.querySelector(".ch-del-btn");
-              if (btn && ch.id !== "general") btn.style.display = "flex";
-            }}
-            onMouseLeave={e => {
-              if (activeChannel !== ch.id) e.currentTarget.style.background = "transparent";
-              const btn = e.currentTarget.querySelector(".ch-del-btn");
-              if (btn) btn.style.display = "none";
-            }}>
+            onMouseEnter={e => { if (activeChannel !== ch.id) e.currentTarget.style.background = "#f8fafc"; }}
+            onMouseLeave={e => { if (activeChannel !== ch.id) e.currentTarget.style.background = "transparent"; }}>
             <span style={{ color: activeChannel === ch.id ? "#6366f1" : "#94a3b8", fontWeight: 700 }}>#</span>
             <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ch.name}</span>
             {(tasks[ch.id] || []).filter(t => !t.done).length > 0 && (
@@ -1119,20 +1109,11 @@ export default function App() {
             )}
             {ch.unread > 0 && (
               <span style={{
-                background: "#ef4444", color: "#fff",
-                borderRadius: "50%", fontSize: 11, fontWeight: 700,
-                minWidth: 20, height: 20,
+                background: "#ef4444", color: "#fff", borderRadius: "50%",
+                fontSize: 11, fontWeight: 700, minWidth: 20, height: 20,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 padding: "0 5px", flexShrink: 0,
               }}>{ch.unread}</span>
-            )}
-            {ch.id !== "general" && (
-              <button className="ch-del-btn" onClick={e => { e.stopPropagation(); deleteChannel(ch.id); }} style={{
-                display: "none", alignItems: "center", justifyContent: "center",
-                background: "#fee2e2", border: "none", borderRadius: 6,
-                color: "#ef4444", cursor: "pointer", width: 20, height: 20, fontSize: 12,
-                flexShrink: 0,
-              }}>✕</button>
             )}
           </div>
         ))}
@@ -1655,12 +1636,16 @@ export default function App() {
           </div>}
 
           {/* SIDE PANEL（PC） */}
-          {activeView === "chat" && !isMobile && (panel === "admin" ? AdminPanel : panel === "note" ? NotePanel : TaskPanel)}
+          {!isMobile && panel === "admin" && AdminPanel}
+          {!isMobile && panel === "note" && NotePanel}
+          {!isMobile && panel === "task" && activeView === "chat" && TaskPanel}
         </div>
       </div>
 
       {/* SIDE PANEL（モバイル） */}
-      {isMobile && (panel === "admin" ? AdminPanel : panel === "note" ? NotePanel : TaskPanel)}
+      {isMobile && panel === "admin" && AdminPanel}
+      {isMobile && panel === "note" && NotePanel}
+      {isMobile && panel === "task" && TaskPanel}
 
       {/* カレンダーモーダル */}
       {showCalendar && (
