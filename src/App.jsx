@@ -242,6 +242,7 @@ function DashboardView({ tasks, channels, members, me, onSelectChannel, onToggle
       <div style={{
         background: "#fff", border: "1px solid #e8edf3", borderRadius: 10,
         padding: "10px 12px", marginBottom: 6,
+        borderLeft: `3px solid ${assignee?.color || "#6366f1"}`,
       }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
           <button onClick={() => onToggleTask(task.channelId, task.id)} style={{
@@ -1088,7 +1089,7 @@ export default function App() {
         {channels.map(ch => (
           <div key={ch.id}
             onClick={() => selectChannel(ch.id)}
-            onContextMenu={e => { e.preventDefault(); deleteChannel(ch.id); }}
+
             style={{
               display: "flex", alignItems: "center", gap: 7,
               padding: isMobile ? "10px 16px" : "6px 16px", cursor: "pointer",
@@ -1339,6 +1340,42 @@ export default function App() {
         <div style={{ marginTop: 16, padding: "12px", background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 10 }}>
           <div style={{ fontSize: 12, color: "#92400e", fontWeight: 600, marginBottom: 4 }}>⚠️ 注意</div>
           <div style={{ fontSize: 11, color: "#b45309" }}>変更はこのセッション中のみ有効です。コードへの恒久的な変更は開発者に依頼してください。</div>
+        </div>
+
+        {/* チャンネル設定 */}
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 10 }}>チャンネル管理</div>
+          {channels.map((ch, idx) => (
+            <div key={ch.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", background: "#f8fafc", borderRadius: 8, marginBottom: 6, border: "1px solid #e8edf3" }}>
+              <span style={{ color: "#6366f1", fontWeight: 700, fontSize: 13 }}>#</span>
+              <span style={{ flex: 1, fontSize: 13, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ch.name}</span>
+              <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
+                <button
+                  onClick={async () => {
+                    if (idx === 0) return;
+                    const updated = [...channels];
+                    [updated[idx - 1], updated[idx]] = [updated[idx], updated[idx - 1]];
+                    setChannels(updated);
+                    try { await apiSet("chat:channels", updated); } catch {}
+                  }}
+                  disabled={idx === 0}
+                  style={{ background: idx === 0 ? "#f1f5f9" : "#eef2ff", border: "none", borderRadius: 5, padding: "3px 7px", cursor: idx === 0 ? "default" : "pointer", fontSize: 12, color: idx === 0 ? "#cbd5e1" : "#6366f1" }}>↑</button>
+                <button
+                  onClick={async () => {
+                    if (idx === channels.length - 1) return;
+                    const updated = [...channels];
+                    [updated[idx], updated[idx + 1]] = [updated[idx + 1], updated[idx]];
+                    setChannels(updated);
+                    try { await apiSet("chat:channels", updated); } catch {}
+                  }}
+                  disabled={idx === channels.length - 1}
+                  style={{ background: idx === channels.length - 1 ? "#f1f5f9" : "#eef2ff", border: "none", borderRadius: 5, padding: "3px 7px", cursor: idx === channels.length - 1 ? "default" : "pointer", fontSize: 12, color: idx === channels.length - 1 ? "#cbd5e1" : "#6366f1" }}>↓</button>
+                <button
+                  onClick={() => deleteChannel(ch.id)}
+                  style={{ background: "#fee2e2", border: "none", borderRadius: 5, padding: "3px 7px", cursor: "pointer", fontSize: 12, color: "#ef4444", fontWeight: 700 }}>✕</button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
