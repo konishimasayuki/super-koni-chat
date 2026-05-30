@@ -1562,11 +1562,10 @@ export default function App() {
 
             {/* カレンダー本体 */}
             <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
-              {calView === "month" ? (
-                <MonthView events={calEvents} currentDate={calCurrentDate} setCurrentDate={setCalCurrentDate} onSelectEvent={setSelectedEvent} />
-              ) : (
+              <MonthView events={calEvents} currentDate={calCurrentDate} setCurrentDate={setCalCurrentDate} onSelectEvent={setSelectedEvent} />
+              <div style={{ borderTop: "1px solid #f1f5f9", marginTop: 16, paddingTop: 16 }}>
                 <ListView events={calEvents} onSelectEvent={setSelectedEvent} />
-              )}
+              </div>
             </div>
           </div>
         </div>
