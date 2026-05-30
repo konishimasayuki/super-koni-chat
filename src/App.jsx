@@ -253,11 +253,6 @@ function DashboardView({ tasks, channels, members, me, onSelectChannel, onToggle
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, color: "#0f172a", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{task.text}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4, flexWrap: "wrap" }}>
-              <button onClick={() => onSelectChannel(task.channelId)} style={{
-                background: "#eef2ff", border: "none", borderRadius: 6,
-                padding: "2px 7px", cursor: "pointer", fontSize: 11,
-                color: "#4f46e5", fontWeight: 600,
-              }}># {task.channelName}</button>
               <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
                 <div style={{ width: 14, height: 14, borderRadius: "50%", background: assignee?.color || "#6366f1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 7, fontWeight: 700, color: "#fff" }}>{assignee?.avatar}</div>
                 <span style={{ fontSize: 11, color: "#64748b" }}>{assignee?.name}</span>
@@ -290,20 +285,18 @@ function DashboardView({ tasks, channels, members, me, onSelectChannel, onToggle
 
       {/* PC版: チャンネルを4列グリッド */}
       {!isMobile ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, alignItems: "start" }}>
           {channels.map(ch => {
             const chTasks = (tasks[ch.id] || []).filter(t => !t.done);
+            if (chTasks.length === 0) return null;
             return (
               <div key={ch.id} style={{ background: "#fff", borderRadius: 14, padding: "14px", border: "1px solid #e8edf3", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
                   <span style={{ color: "#6366f1", fontWeight: 700 }}>#</span>
                   <span style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ch.name}</span>
-                  <span style={{ background: chTasks.length > 0 ? "#fef3c7" : "#f1f5f9", color: chTasks.length > 0 ? "#92400e" : "#94a3b8", borderRadius: 10, fontSize: 11, padding: "1px 7px", fontWeight: 700, flexShrink: 0 }}>{chTasks.length}</span>
+                  <span style={{ background: "#fef3c7", color: "#92400e", borderRadius: 10, fontSize: 11, padding: "1px 7px", fontWeight: 700, flexShrink: 0 }}>{chTasks.length}</span>
                 </div>
-                {chTasks.length === 0
-                  ? <div style={{ fontSize: 12, color: "#94a3b8", textAlign: "center", padding: "16px 0" }}>タスクなし ✅</div>
-                  : chTasks.map(t => <TaskCard key={`${ch.id}-${t.id}`} task={{ ...t, channelId: ch.id, channelName: ch.name }} />)
-                }
+                {chTasks.map(t => <TaskCard key={`${ch.id}-${t.id}`} task={{ ...t, channelId: ch.id, channelName: ch.name }} />)}
               </div>
             );
           })}
