@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+/*1、４４６、690、import { useState, useRef, useEffect, useCallback } from "react";
 
 // ============================================================
 // 定数・設定
@@ -443,7 +443,8 @@ function ListView({ events, onSelectEvent }) {
 // ============================================================
 // 既読表示コンポーネント
 // ============================================================
-function ReadStatus({ channelId, msgId, myId, members, sentAt }) {
+/*
+  function ReadStatus({ channelId, msgId, myId, members, sentAt }) {
   const [readers, setReaders] = useState([]);
 
   useEffect(() => {
@@ -686,7 +687,7 @@ export default function App() {
 
   // 初回 & ポーリング
   useEffect(() => {
-    loadMessages(activeChannel);
+/*    loadMessages(activeChannel);
     const timer = setInterval(async () => {
       if (!me?.id) return; // ログイン前はスキップ
       // チャンネル一覧をポーリング（新しいチャンネルを検出）
