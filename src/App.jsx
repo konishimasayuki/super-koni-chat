@@ -1,4 +1,4 @@
-/*1、４４６、690、import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 // ============================================================
 // 定数・設定
@@ -443,8 +443,7 @@ function ListView({ events, onSelectEvent }) {
 // ============================================================
 // 既読表示コンポーネント
 // ============================================================
-/*
-  function ReadStatus({ channelId, msgId, myId, members, sentAt }) {
+function ReadStatus({ channelId, msgId, myId, members, sentAt }) {
   const [readers, setReaders] = useState([]);
 
   useEffect(() => {
@@ -461,8 +460,7 @@ function ListView({ events, onSelectEvent }) {
       setReaders(readMembers);
     };
     check();
-    const timer = setInterval(check, 3000);
-    return () => clearInterval(timer);
+    // ポーリング停止（負荷削減）: const timer = setInterval(check, 3000); return () => clearInterval(timer);
   }, [channelId, myId, sentAt]);
 
   if (readers.length === 0) return (
@@ -687,7 +685,8 @@ export default function App() {
 
   // 初回 & ポーリング
   useEffect(() => {
-/*    loadMessages(activeChannel);
+    loadMessages(activeChannel);
+    /* ポーリング停止（負荷削減）。新着は画面更新で取得
     const timer = setInterval(async () => {
       if (!me?.id) return; // ログイン前はスキップ
       // チャンネル一覧をポーリング（新しいチャンネルを検出）
@@ -728,6 +727,7 @@ export default function App() {
       } catch {}
     }, POLL_INTERVAL);
     return () => clearInterval(timer);
+    */
   }, [activeChannel, channels, loadMessages]);
 
   // タスク読み込み（アクティブチャンネル切り替え時）
@@ -916,8 +916,7 @@ export default function App() {
       } catch {}
     };
     loadCalEvents();
-    const timer = setInterval(loadCalEvents, 3000);
-    return () => clearInterval(timer);
+    // ポーリング停止（負荷削減）: const timer = setInterval(loadCalEvents, 3000); return () => clearInterval(timer);
   }, []);
 
   const addCalEvent = async () => {
